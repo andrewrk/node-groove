@@ -1,0 +1,11 @@
+{
+  "name": "groove",
+  "version": "0.0.0",
+  "description": "bindings to libgroove - generic music player library",
+  "main": "index.js",
+  "author": "Andrew Kelley <superjoe30@gmail.com>",
+  "scripts": {
+      "test": "node test/test.js"
+  },
+  "license": "BSD-2-Clause"
+}
