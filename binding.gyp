@@ -3,7 +3,7 @@
     {
         "target_name": "groove",
         "sources": [
-          "groove.cc"
+          "src/groove.cc"
         ],
         "libraries": [
             "-lgroove"
