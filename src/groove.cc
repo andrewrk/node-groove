@@ -23,6 +23,7 @@ static void SetProperty(target_t obj, const char* name, double n) {
 
 void Initialize(Handle<Object> exports) {
     GNFile::Init();
+    GNPlayer::Init();
 
     // ordered approximately by how they are in groove.h
     groove_init();

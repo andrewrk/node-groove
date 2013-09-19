@@ -44,7 +44,7 @@ Handle<Value> GNFile::New(const Arguments& args) {
     GNFile *obj = new GNFile();
     obj->Wrap(args.This());
     
-    return args.This();
+    return scope.Close(args.This());
 }
 
 Handle<Value> GNFile::NewInstance(GrooveFile *file) {

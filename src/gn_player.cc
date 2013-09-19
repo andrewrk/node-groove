@@ -10,7 +10,7 @@ Persistent<Function> GNPlayer::constructor;
 
 template <typename target_t, typename func_t>
 static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(String::New(name), fn);
+    tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol(name), fn);
 }
 
 template <typename target_t, typename func_t>
@@ -24,8 +24,6 @@ void GNPlayer::Init() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GroovePlayer"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // Fields
-    AddGetter(tpl, "playlist", GetPlaylist);
     // Methods
     AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
@@ -53,7 +51,7 @@ Handle<Value> GNPlayer::New(const Arguments& args) {
     GNPlayer *obj = new GNPlayer();
     obj->Wrap(args.This());
     
-    return args.This();
+    return scope.Close(args.This());
 }
 
 Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
@@ -63,15 +61,10 @@ Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
 
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     gn_player->player = player;
-    gn_player->playlist = Array::New();
+
+    instance->Set(String::NewSymbol("playlist"), Array::New());
 
     return scope.Close(instance);
-}
-
-Handle<Value> GNPlayer::GetPlaylist(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
-    return scope.Close(gn_player->playlist);
 }
 
 Handle<Value> GNPlayer::Play(const Arguments& args) {
@@ -203,7 +196,8 @@ static void CreateAfter(uv_work_t *req) {
     HandleScope scope;
     CreateReq *r = reinterpret_cast<CreateReq *>(req->data);
 
-    Handle<Value> argv[2];
+    const unsigned argc = 2;
+    Handle<Value> argv[argc];
     if (r->player) {
         argv[0] = Null();
         argv[1] = GNPlayer::NewInstance(r->player);
@@ -211,7 +205,7 @@ static void CreateAfter(uv_work_t *req) {
         argv[0] = Exception::Error(String::New("create player failed"));
         argv[1] = Null();
     }
-    r->callback->Call(Context::GetCurrent()->Global(), 2, argv);
+    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
 }
@@ -268,6 +262,7 @@ Handle<Value> GNPlayer::Destroy(const Arguments& args) {
     DestroyReq *request = new DestroyReq;
 
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->player = gn_player->player;
     request->req.data = request;
 
     uv_queue_work(uv_default_loop(), &request->req, DestroyAsync,

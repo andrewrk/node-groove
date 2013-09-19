@@ -57,8 +57,19 @@ test("update metadata", function(t) {
         t.ok(!err);
         groove.open(rwTestOgg, function(err, file) {
             t.ok(!err);
-            t.equal(file.getMetadata('foo new key'), 'libgroove rules!');
+            t.equal(file.getMetadata('foo new key'), 'libgroove rules!', "update worked");
             fs.unlinkSync(rwTestOgg);
         });
     }
+});
+
+test("create and destroy empty player", function(t) {
+    t.plan(3);
+    groove.createPlayer(function(err, player) {
+        t.ok(!err, "creating player");
+        t.equivalent(player.playlist, [], "empty playlist");
+        player.destroy(function(err) {
+            t.ok(!err, "destroying player");
+        });
+    });
 });
