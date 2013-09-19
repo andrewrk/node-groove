@@ -33,9 +33,12 @@ function performRwTests(err, file) {
     if (err) throw err;
     file.setMetadata('foo new key', "libgroove rules!");
     assert.strictEqual(file.getMetadata('foo new key'), 'libgroove rules!');
-    cleanup();
+    file.save(function(err) {
+        if (err) throw err;
+        cleanup();
+    });
 }
 
 function cleanup() {
-    fs.unlink(rwTestOgg);
+    fs.unlinkSync(rwTestOgg);
 }

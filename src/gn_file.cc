@@ -152,12 +152,6 @@ Handle<Value> GNFile::ShortNames(const Arguments& args) {
     return scope.Close(String::New(groove_file_short_names(gn_file->file)));
 }
 
-Handle<Value> GNFile::Save(const Arguments& args) {
-    HandleScope scope;
-    fprintf(stderr, "Save\n");
-    return scope.Close(Undefined());
-}
-
 Handle<Value> GNFile::Duration(const Arguments& args) {
     HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
@@ -213,8 +207,55 @@ Handle<Value> GNFile::Open(const Arguments& args) {
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
     request->req.data = request;
 
-    uv_queue_work(uv_default_loop(), &request->req, OpenAsync,
-            (uv_after_work_cb)OpenAfter);
+    uv_queue_work(uv_default_loop(), &request->req, OpenAsync, (uv_after_work_cb)OpenAfter);
+
+    return scope.Close(Undefined());
+}
+
+struct SaveReq {
+    uv_work_t req;
+    Persistent<Function> callback;
+    GrooveFile *file;
+    int ret;
+};
+
+static void SaveAsync(uv_work_t *req) {
+    SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
+    r->ret = groove_file_save(r->file);
+}
+
+static void SaveAfter(uv_work_t *req) {
+    HandleScope scope;
+    SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
+
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    if (r->ret < 0) {
+        argv[0] = Exception::Error(String::New("save failed"));
+    } else {
+        argv[0] = Null();
+    }
+    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+
+    delete r;
+}
+
+Handle<Value> GNFile::Save(const Arguments& args) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+
+    if (args.Length() < 1 || !args[0]->IsFunction()) {
+        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
+        return scope.Close(Undefined());
+    }
+
+    SaveReq *request = new SaveReq;
+
+    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->file = gn_file->file;
+    request->req.data = request;
+
+    uv_queue_work(uv_default_loop(), &request->req, SaveAsync, (uv_after_work_cb)SaveAfter);
 
     return scope.Close(Undefined());
 }
