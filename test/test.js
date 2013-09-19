@@ -27,8 +27,8 @@ test("open file and read metadata", function(t) {
         t.ok(!err);
         t.equal(file.filename, testOgg);
         t.equal(file.dirty, false);
-        t.equal(file.metadata.TITLE, 'Danse Macabre');
-        t.equal(file.metadata.ARTIST, 'Kevin MacLeod');
+        t.equal(file.metadata().TITLE, 'Danse Macabre');
+        t.equal(file.metadata().ARTIST, 'Kevin MacLeod');
         t.equal(file.shortNames(), 'ogg');
         t.equal(file.getMetadata('initial key'), 'C');
         t.equal(file.getMetadata('bogus nonexisting tag'), null);

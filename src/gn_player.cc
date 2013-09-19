@@ -208,6 +208,9 @@ static void CreateAfter(uv_work_t *req) {
     r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
+
+
+    // start thread to dispatch events
 }
 
 Handle<Value> GNPlayer::Create(const Arguments& args) {

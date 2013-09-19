@@ -31,6 +31,7 @@ void GNFile::Init() {
     AddMethod(tpl, "close", Close);
     AddMethod(tpl, "getMetadata", GetMetadata);
     AddMethod(tpl, "setMetadata", SetMetadata);
+    AddMethod(tpl, "metadata", Metadata);
     AddMethod(tpl, "shortNames", ShortNames);
     AddMethod(tpl, "save", Save);
     AddMethod(tpl, "duration", Duration);
@@ -54,15 +55,6 @@ Handle<Value> GNFile::NewInstance(GrooveFile *file) {
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(instance);
     gn_file->file = file;
-
-    // save all the metadata into an object
-    Local<Object> metadata = Object::New();
-
-    GrooveTag *tag = NULL;
-    while ((tag = groove_file_metadata_get(file, "", tag, 0)))
-        metadata->Set(String::New(groove_tag_key(tag)), String::New(groove_tag_value(tag)));
-    
-    instance->Set(String::NewSymbol("metadata"), metadata);
 
     return scope.Close(instance);
 }
@@ -137,6 +129,18 @@ Handle<Value> GNFile::SetMetadata(const Arguments& args) {
         return scope.Close(Undefined());
     }
     return scope.Close(Undefined());
+}
+
+Handle<Value> GNFile::Metadata(const Arguments& args) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+    Local<Object> metadata = Object::New();
+
+    GrooveTag *tag = NULL;
+    while ((tag = groove_file_metadata_get(gn_file->file, "", tag, 0)))
+        metadata->Set(String::New(groove_tag_key(tag)), String::New(groove_tag_value(tag)));
+
+    return scope.Close(metadata);
 }
 
 Handle<Value> GNFile::ShortNames(const Arguments& args) {

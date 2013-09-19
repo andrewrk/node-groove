@@ -30,6 +30,7 @@ class GNFile : public node::ObjectWrap {
         static v8::Handle<v8::Value> Duration(const v8::Arguments& args);
         static v8::Handle<v8::Value> GetMetadata(const v8::Arguments& args);
         static v8::Handle<v8::Value> SetMetadata(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Metadata(const v8::Arguments& args);
         static v8::Handle<v8::Value> ShortNames(const v8::Arguments& args);
         static v8::Handle<v8::Value> Save(const v8::Arguments& args);
 };

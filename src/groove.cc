@@ -22,11 +22,10 @@ static void SetProperty(target_t obj, const char* name, double n) {
 }
 
 void Initialize(Handle<Object> exports) {
+    groove_init();
+
     GNFile::Init();
     GNPlayer::Init();
-
-    // ordered approximately by how they are in groove.h
-    groove_init();
 
     SetProperty(exports, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(exports, "LOG_ERROR", GROOVE_LOG_ERROR);
@@ -40,6 +39,12 @@ void Initialize(Handle<Object> exports) {
     SetProperty(exports, "REPLAYGAINMODE_OFF", GROOVE_REPLAYGAINMODE_OFF);
     SetProperty(exports, "REPLAYGAINMODE_TRACK", GROOVE_REPLAYGAINMODE_TRACK);
     SetProperty(exports, "REPLAYGAINMODE_ALBUM", GROOVE_REPLAYGAINMODE_ALBUM);
+
+    SetProperty(exports, "_PLAYER_EVENT_NOWPLAYING", GROOVE_PLAYER_EVENT_NOWPLAYING);
+    SetProperty(exports, "_PLAYER_EVENT_BUFFERUNDERRUN", GROOVE_PLAYER_EVENT_BUFFERUNDERRUN);
+
+    SetProperty(exports, "_RG_EVENT_PROGRESS", GROOVE_RG_EVENT_PROGRESS);
+    SetProperty(exports, "_RG_EVENT_COMPLETE", GROOVE_RG_EVENT_COMPLETE);
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "open", GNFile::Open);

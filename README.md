@@ -18,7 +18,7 @@ var groove = require('groove');
 
 groove.open("danse-macabre.ogg", function(err, file) {
   if (err) throw err;
-  console.log(file.metadata);
+  console.log(file.metadata());
   console.log("duration:", file.duration());
   file.close(function(err) {
     if (err) throw err;
@@ -76,12 +76,11 @@ See `getMetadata` for flags.
 
 Pass `null` for `value` to delete a key.
 
-#### file.metadata
+#### file.metadata()
 
-For convenience, this is an object with all the metadata filled in.
-You can still query individually with `getMetadata`. In order
-to update metadata you must call `setMetadata` and then `save`.
-This property is *not* updated when you call `setMetadata`.
+This returns an object populated with all the metadata.
+Updating the object does nothing. Use `setMetadata` to
+update metadata and then `save` to write changes to disk.
 
 #### file.dirty
 
