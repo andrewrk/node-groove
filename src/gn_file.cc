@@ -13,7 +13,10 @@ void GNFile::Init() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GrooveFile"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // Prototype
+    // Fields
+    tpl->PrototypeTemplate()->SetAccessor(String::New("filename"), GetFilename);
+    tpl->PrototypeTemplate()->SetAccessor(String::New("dirty"), GetDirty);
+    // Methods
     tpl->PrototypeTemplate()->Set(String::NewSymbol("close"),
             FunctionTemplate::New(Close)->GetFunction());
 
@@ -38,6 +41,18 @@ Handle<Value> GNFile::NewInstance(GrooveFile *file) {
     gn_file->file = file;
 
     return scope.Close(instance);
+}
+
+Handle<Value> GNFile::GetDirty(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
+    return scope.Close(Boolean::New(gn_file->file->dirty));
+}
+
+Handle<Value> GNFile::GetFilename(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
+    return scope.Close(String::NewSymbol(gn_file->file->filename));
 }
 
 Handle<Value> GNFile::Close(const Arguments& args) {

@@ -4,6 +4,10 @@
   "description": "bindings to libgroove - generic music player library",
   "main": "index.js",
   "author": "Andrew Kelley <superjoe30@gmail.com>",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/superjoe30/node-groove"
+  },
   "scripts": {
       "test": "node test/test.js"
   },

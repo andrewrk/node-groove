@@ -18,8 +18,12 @@ class GNFile : public node::ObjectWrap {
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
-        // TODO dirty property
-        // TODO filename property
+
+        static v8::Handle<v8::Value> GetDirty(v8::Local<v8::String> property,
+                const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> GetFilename(v8::Local<v8::String> property,
+                const v8::AccessorInfo &info);
+
         static v8::Handle<v8::Value> Close(const v8::Arguments& args);
         static v8::Handle<v8::Value> GetMetadata(const v8::Arguments& args);
         static v8::Handle<v8::Value> SetMetadata(const v8::Arguments& args);

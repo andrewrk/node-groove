@@ -11,5 +11,7 @@ groove.open(testOgg, function(err, file) {
         console.error("Error opening file:", err.stack);
         return;
     }
+    assert.strictEqual(file.filename, testOgg);
+    assert.strictEqual(file.dirty, false);
     file.close();
 });
