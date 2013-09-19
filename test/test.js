@@ -13,5 +13,8 @@ groove.open(testOgg, function(err, file) {
     }
     assert.strictEqual(file.filename, testOgg);
     assert.strictEqual(file.dirty, false);
+    assert.strictEqual(file.metadata.TITLE, 'Danse Macabre');
+    assert.strictEqual(file.metadata.ARTIST, 'Kevin MacLeod');
+    assert.strictEqual(file.shortNames(), 'ogg');
     file.close();
 });
