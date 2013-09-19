@@ -60,6 +60,10 @@ This property is *not* updated when you call `setMetadata`.
 
 Boolean whether `save` will do anything.
 
+#### file.filename
+
+The string that was passed to `groove.open`
+
 #### file.save(callback)
 
 `callback(err)`
