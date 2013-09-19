@@ -42,7 +42,8 @@ Handle<Value> GNFile::NewInstance(GrooveFile *file) {
 
 Handle<Value> GNFile::Close(const Arguments& args) {
     HandleScope scope;
-    fprintf(stderr, "close\n");
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+    groove_close(gn_file->file);
     return scope.Close(Undefined());
 }
 
