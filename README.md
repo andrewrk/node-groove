@@ -8,6 +8,8 @@ generic music player backend library.
 1. Install libgroove to your system.
 2. `npm install --save groove`
 
+### Get Metadata from File
+
 ```js
 var groove = require('groove');
 
@@ -15,8 +17,22 @@ groove.open("danse-macabre.ogg", function(err, file) {
   if (err) throw err;
   console.log(file.metadata);
   console.log("duration:", file.duration());
-  file.close();
+  file.close(function(err) {
+    if (err) throw err;
+  });
 });
+```
+
+#### More Examples
+
+ * example/metadata.js - read or update metadata in a media file
+ * example/playlist.js - play several files in a row and then exit
+
+### Play List of Files with Gapless Playback
+
+(using [pend](https://github.com/superjoe30/node-pend) for async)
+
+```js
 ```
 
 ## API Documentation
@@ -61,6 +77,8 @@ Flags:
 #### file.setMetadata(key, value, [flags])
 
 See `getMetadata` for flags.
+
+Pass `null` for `value` to delete a key.
 
 #### file.metadata
 
