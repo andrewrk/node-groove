@@ -1,6 +1,6 @@
 #include <node.h>
 #include "gn_file.h"
-#include <groove.h>
+#include "gn_player.h"
 
 using namespace v8;
 using namespace node;
@@ -42,6 +42,7 @@ void Initialize(Handle<Object> exports) {
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "open", GNFile::Open);
+    SetMethod(exports, "createPlayer", GNPlayer::Create);
 }
 
 NODE_MODULE(groove, Initialize)

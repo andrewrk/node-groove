@@ -79,13 +79,6 @@ Handle<Value> GNFile::GetFilename(Local<String> property, const AccessorInfo &in
     return scope.Close(String::New(gn_file->file->filename));
 }
 
-Handle<Value> GNFile::Close(const Arguments& args) {
-    HandleScope scope;
-    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
-    groove_close(gn_file->file);
-    return scope.Close(Undefined());
-}
-
 Handle<Value> GNFile::GetMetadata(const Arguments& args) {
     HandleScope scope;
 
@@ -158,6 +151,45 @@ Handle<Value> GNFile::Duration(const Arguments& args) {
     return scope.Close(Number::New(groove_file_duration(gn_file->file)));
 }
 
+struct CloseReq {
+    uv_work_t req;
+    Persistent<Function> callback;
+    GrooveFile *file;
+};
+
+static void CloseAsync(uv_work_t *req) {
+    CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
+    groove_close(r->file);
+}
+
+static void CloseAfter(uv_work_t *req) {
+    HandleScope scope;
+    CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
+
+    r->callback->Call(Context::GetCurrent()->Global(), 0, NULL);
+
+    delete r;
+}
+
+Handle<Value> GNFile::Close(const Arguments& args) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+
+    if (args.Length() < 1 || !args[0]->IsFunction()) {
+        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
+        return scope.Close(Undefined());
+    }
+
+    CloseReq *request = new CloseReq;
+
+    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->file = gn_file->file;
+    request->req.data = request;
+
+    uv_queue_work(uv_default_loop(), &request->req, CloseAsync, (uv_after_work_cb)CloseAfter);
+
+    return scope.Close(Undefined());
+}
 
 struct OpenReq {
     uv_work_t req;
@@ -180,7 +212,7 @@ static void OpenAfter(uv_work_t *req) {
         argv[0] = Null();
         argv[1] = GNFile::NewInstance(r->file);
     } else {
-        argv[0] = Exception::Error(String::New("Unable to open file"));
+        argv[0] = Exception::Error(String::New("open file failed"));
         argv[1] = Null();
     }
     r->callback->Call(Context::GetCurrent()->Global(), 2, argv);

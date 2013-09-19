@@ -1,9 +1,10 @@
-var groove = require('../build/Release/groove');
+var groove = require('../');
 var assert = require('assert');
 var path = require('path');
 var fs = require('fs');
 var ncp = require('ncp').ncp;
 var testOgg = path.join(__dirname, "danse.ogg");
+var bogusFile = __filename;
 var rwTestOgg = path.join(__dirname, "danse-rw.ogg");
 
 assert.strictEqual(groove.LOG_ERROR, 16);
@@ -18,8 +19,14 @@ groove.open(testOgg, function(err, file) {
     assert.strictEqual(file.shortNames(), 'ogg');
     assert.strictEqual(file.getMetadata('initial key'), 'C');
     assert.strictEqual(file.getMetadata('bogus nonexisting tag'), null);
-    file.close();
-    copyRwTestOgg();
+    file.close(function(err) {
+        if (err) throw err;
+        copyRwTestOgg();
+    });
+});
+
+groove.open(bogusFile, function(err, file) {
+    assert.strictEqual(err.message, "open file failed");
 });
 
 function copyRwTestOgg() {
@@ -35,10 +42,14 @@ function performRwTests(err, file) {
     assert.strictEqual(file.getMetadata('foo new key'), 'libgroove rules!');
     file.save(function(err) {
         if (err) throw err;
-        cleanup();
+        file.close(function(err) {
+            if (err) throw err;
+            cleanup();
+        });
     });
 }
 
 function cleanup() {
     fs.unlinkSync(rwTestOgg);
+    console.log("all tests passed. (one test tried to open that bogus file)");
 }

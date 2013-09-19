@@ -14,5 +14,8 @@
   "license": "BSD-2-Clause",
   "devDependencies": {
     "ncp": "~0.4.2"
+  },
+  "dependencies": {
+    "bindings": "~1.1.1"
   }
 }
