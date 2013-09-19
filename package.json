@@ -9,11 +9,12 @@
     "url": "https://github.com/superjoe30/node-groove"
   },
   "scripts": {
-    "test": "node test/test.js"
+    "test": "tap test/test.js"
   },
   "license": "BSD-2-Clause",
   "devDependencies": {
-    "ncp": "~0.4.2"
+    "ncp": "~0.4.2",
+    "tap": "~0.4.4"
   },
   "dependencies": {
     "bindings": "~1.1.1"

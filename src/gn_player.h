@@ -17,6 +17,7 @@ class GNPlayer : public node::ObjectWrap {
         ~GNPlayer();
 
         GroovePlayer *player;
+        v8::Handle<v8::Array> playlist;
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);

@@ -63,6 +63,7 @@ Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
 
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     gn_player->player = player;
+    gn_player->playlist = Array::New();
 
     return scope.Close(instance);
 }
@@ -70,8 +71,7 @@ Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
 Handle<Value> GNPlayer::GetPlaylist(Local<String> property, const AccessorInfo &info) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
-    fprintf(stderr, "TODO: implement\n");
-    return scope.Close(Undefined());
+    return scope.Close(gn_player->playlist);
 }
 
 Handle<Value> GNPlayer::Play(const Arguments& args) {

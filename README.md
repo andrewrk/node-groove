@@ -21,6 +21,17 @@ groove.open("danse-macabre.ogg", function(err, file) {
 
 ## API Documentation
 
+### globals
+
+#### groove.setLogging(level)
+
+`level` can be:
+
+ * `groove.LOG_QUIET`
+ * `groove.LOG_ERROR`
+ * `groove.LOG_WARNING`
+ * `groove.LOG_INFO`
+
 ### GrooveFile
 
 #### groove.open(filename, callback)
