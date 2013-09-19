@@ -73,3 +73,4 @@ test("create and destroy empty player", function(t) {
         });
     });
 });
+

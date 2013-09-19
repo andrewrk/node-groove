@@ -1,6 +1,6 @@
 /* play several files in a row and then exit */
 
-var groove = require('groove');
+var groove = require('../');
 var assert = require('assert');
 var Pend = require('pend'); // npm install pend
 
@@ -28,8 +28,11 @@ groove.createPlayer(function(err, player) {
   function addFileFn(filename) {
     return function(cb) {
       groove.open(filename, function(err, file) {
-        if (err) console.error("unable to open", filename, err.stack);
-        player.insert(file, null);
+        if (err) {
+          console.error("unable to open", filename, err.stack);
+        } else {
+          player.insert(file, null);
+        }
         cb();
       });
     };
@@ -56,6 +59,6 @@ function destroyPlItemFn(playlistItem) {
 }
 
 function usage() {
-  console.error("Usage:", process.argv[0], process.argv[1], "file1 file2 ...");
+  console.error("Usage: playlist file1 file2 ...");
   process.exit(1);
 }

@@ -17,6 +17,7 @@ class GNPlayer : public node::ObjectWrap {
         ~GNPlayer();
 
         GroovePlayer *player;
+        GroovePlayerEvent *event;
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
@@ -34,6 +35,7 @@ class GNPlayer : public node::ObjectWrap {
         static v8::Handle<v8::Value> Playing(const v8::Arguments& args);
         static v8::Handle<v8::Value> Clear(const v8::Arguments& args);
         static v8::Handle<v8::Value> Count(const v8::Arguments& args);
+        static v8::Handle<v8::Value> EventPoll(const v8::Arguments& args);
         static v8::Handle<v8::Value> SetReplayGainMode(const v8::Arguments& args);
 
         static v8::Handle<v8::Value> SetReplayGainPreamp(const v8::Arguments& args);

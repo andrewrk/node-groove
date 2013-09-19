@@ -3,8 +3,12 @@
 
 using namespace v8;
 
-GNPlayer::GNPlayer() {};
-GNPlayer::~GNPlayer() {};
+GNPlayer::GNPlayer() {
+    event = new GroovePlayerEvent;
+};
+GNPlayer::~GNPlayer() {
+    delete event;
+};
 
 Persistent<Function> GNPlayer::constructor;
 
@@ -23,7 +27,7 @@ void GNPlayer::Init() {
     // Prepare constructor template
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GroovePlayer"));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    tpl->InstanceTemplate()->SetInternalFieldCount(2);
     // Methods
     AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
@@ -35,6 +39,7 @@ void GNPlayer::Init() {
     AddMethod(tpl, "playing", Playing);
     AddMethod(tpl, "clear", Clear);
     AddMethod(tpl, "count", Count);
+    AddMethod(tpl, "_eventPoll", EventPoll);
     AddMethod(tpl, "setReplayGainMode", SetReplayGainMode);
     AddMethod(tpl, "setReplayGainPreamp", SetReplayGainPreamp);
     AddMethod(tpl, "getReplayGainPreamp", GetReplayGainPreamp);
@@ -115,7 +120,6 @@ Handle<Value> GNPlayer::Position(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::Playing(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     fprintf(stderr, "TODO: implement\n");
@@ -123,7 +127,6 @@ Handle<Value> GNPlayer::Playing(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::Clear(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     fprintf(stderr, "TODO: implement\n");
@@ -131,15 +134,22 @@ Handle<Value> GNPlayer::Clear(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::Count(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     fprintf(stderr, "TODO: implement\n");
     return scope.Close(Undefined());
 }
 
-Handle<Value> GNPlayer::SetReplayGainMode(const Arguments& args) {
+Handle<Value> GNPlayer::EventPoll(const Arguments& args) {
+    HandleScope scope;
+    
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
+    int ret = groove_player_event_poll(gn_player->player, gn_player->event);
 
+    return scope.Close(Number::New(ret > 0 ? gn_player->event->type : -1));
+}
+
+Handle<Value> GNPlayer::SetReplayGainMode(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     fprintf(stderr, "TODO: implement\n");
@@ -209,8 +219,6 @@ static void CreateAfter(uv_work_t *req) {
 
     delete r;
 
-
-    // start thread to dispatch events
 }
 
 Handle<Value> GNPlayer::Create(const Arguments& args) {
