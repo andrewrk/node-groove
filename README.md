@@ -3,6 +3,9 @@
 Node.js bindings to [libgroove](https://github.com/superjoe30/libgroove) -
 generic music player backend library.
 
+Note: GroovePlayer and GrooveReplayGainScan are documented but the bindings
+are not fully completed.
+
 ## Usage
 
 1. Install libgroove to your system.
@@ -27,13 +30,6 @@ groove.open("danse-macabre.ogg", function(err, file) {
 
  * example/metadata.js - read or update metadata in a media file
  * example/playlist.js - play several files in a row and then exit
-
-### Play List of Files with Gapless Playback
-
-(using [pend](https://github.com/superjoe30/node-pend) for async)
-
-```js
-```
 
 ## API Documentation
 
@@ -115,6 +111,18 @@ Read only. Use `player.insert` and `player.remove` to modify.
 
 `[playlistItem1, playlistItem2, ...]`
 
+#### player.on('nowplaying', handler)
+
+Fires when the item that is now playing changes. It can be `null`.
+
+`handler()`
+
+#### player.on('bufferunderrun', handler)
+
+Fires when a buffer underrun occurs. Ideally you'll never see this.
+
+`handler()`
+
 #### player.destroy(callback)
 
 `callback(err)`
@@ -191,3 +199,40 @@ Defaults to 0.25.
 #### player.getReplayGainDefault()
 
 ### GrooveReplayGainScan
+
+#### groove.createReplayGainScan(callback)
+
+`callback(err, scan)`
+
+#### scan.destroy(callback)
+
+Must be called to cleanup. If you call it during a scan it will cleanly abort.
+
+`callback(err)`
+
+#### scan.add(filename)
+
+Add a file to the scan. Nothing happens until you `exec()`.
+
+#### scan.exec()
+
+Starts the scan. You will receive progress events.
+
+#### scan.on('progress', handler)
+
+`handler(progress)`
+
+`progress` is an object with these properties:
+
+ * `metadataCurrent`
+ * `metadataTotal`
+ * `scanningCurrent`
+ * `scanningTotal`
+ * `updateCurrent`
+ * `updateTotal`
+
+#### scan.on('end', handler)
+
+When the scan is complete.
+
+`handler()`

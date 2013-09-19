@@ -4,6 +4,8 @@ var groove = require('groove');
 var assert = require('assert');
 var Pend = require('pend'); // npm install pend
 
+if (process.argv.length < 3) usage();
+
 groove.createPlayer(function(err, player) {
   assert.ifError(err);
 
@@ -51,4 +53,9 @@ function destroyPlItemFn(playlistItem) {
       cb();
     });
   };
+}
+
+function usage() {
+  console.error("Usage:", process.argv[0], process.argv[1], "file1 file2 ...");
+  process.exit(1);
 }
