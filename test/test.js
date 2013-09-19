@@ -11,5 +11,5 @@ groove.open(testOgg, function(err, file) {
         console.error("Error opening file:", err.stack);
         return;
     }
-    console.log("got file:", file);
+    file.close();
 });

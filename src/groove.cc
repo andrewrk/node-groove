@@ -1,8 +1,6 @@
-#include <v8.h>
 #include <node.h>
-
+#include "gn_file.h"
 #include "node_pointer.h"
-
 #include <groove.h>
 
 using namespace v8;
@@ -48,7 +46,7 @@ void OpenAfter(uv_work_t *req) {
     Handle<Value> argv[2];
     if (r->file) {
         argv[0] = Null();
-        argv[1] = Local<Value>::New(WrapPointer(r->file));
+        argv[1] = GNFile::NewInstance(r->file);
     } else {
         argv[0] = Exception::Error(String::New("Unable to open file"));
         argv[1] = Null();
@@ -89,6 +87,8 @@ static void SetProperty(target_t obj, const char* name, double n) {
 }
 
 void Initialize(Handle<Object> exports) {
+    GNFile::Init();
+
     // ordered approximately by how they are in groove.h
     groove_init();
 
@@ -96,6 +96,14 @@ void Initialize(Handle<Object> exports) {
     SetProperty(exports, "LOG_ERROR", GROOVE_LOG_ERROR);
     SetProperty(exports, "LOG_WARNING", GROOVE_LOG_WARNING);
     SetProperty(exports, "LOG_INFO", GROOVE_LOG_INFO);
+
+    SetProperty(exports, "TAG_MATCH_CASE", GROOVE_TAG_MATCH_CASE);
+    SetProperty(exports, "TAG_DONT_OVERWRITE", GROOVE_TAG_DONT_OVERWRITE);
+    SetProperty(exports, "TAG_APPEND", GROOVE_TAG_APPEND);
+
+    SetProperty(exports, "REPLAYGAINMODE_OFF", GROOVE_REPLAYGAINMODE_OFF);
+    SetProperty(exports, "REPLAYGAINMODE_TRACK", GROOVE_REPLAYGAINMODE_TRACK);
+    SetProperty(exports, "REPLAYGAINMODE_ALBUM", GROOVE_REPLAYGAINMODE_ALBUM);
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "open", Open);
