@@ -5,11 +5,14 @@
   "main": "index.js",
   "author": "Andrew Kelley <superjoe30@gmail.com>",
   "repository": {
-      "type": "git",
-      "url": "https://github.com/superjoe30/node-groove"
+    "type": "git",
+    "url": "https://github.com/superjoe30/node-groove"
   },
   "scripts": {
-      "test": "node test/test.js"
+    "test": "node test/test.js"
   },
-  "license": "BSD-2-Clause"
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "ncp": "~0.4.2"
+  }
 }

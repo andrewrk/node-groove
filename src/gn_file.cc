@@ -88,13 +88,61 @@ Handle<Value> GNFile::Close(const Arguments& args) {
 
 Handle<Value> GNFile::GetMetadata(const Arguments& args) {
     HandleScope scope;
-    fprintf(stderr, "GetMetadata\n");
-    return scope.Close(Undefined());
+
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+
+    if (args.Length() < 1 || !args[0]->IsString()) {
+        ThrowException(Exception::TypeError(String::New("Expected string arg[0]")));
+        return scope.Close(Undefined());
+    }
+
+    int flags = 0;
+    if (args.Length() >= 2) {
+        if (!args[1]->IsNumber()) {
+            ThrowException(Exception::TypeError(String::New("Expected number arg[1]")));
+            return scope.Close(Undefined());
+        }
+        flags = (int)args[1]->NumberValue();
+    }
+
+    String::Utf8Value key_str(args[0]->ToString());
+    GrooveTag *tag = groove_file_metadata_get(gn_file->file, *key_str, NULL, flags);
+    if (tag)
+        return scope.Close(String::New(groove_tag_value(tag)));
+    return scope.Close(Null());
 }
 
 Handle<Value> GNFile::SetMetadata(const Arguments& args) {
     HandleScope scope;
-    fprintf(stderr, "SetMetadata\n");
+
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+
+    if (args.Length() < 1 || !args[0]->IsString()) {
+        ThrowException(Exception::TypeError(String::New("Expected string arg[0]")));
+        return scope.Close(Undefined());
+    }
+
+    if (args.Length() < 2 || !args[0]->IsString()) {
+        ThrowException(Exception::TypeError(String::New("Expected string arg[1]")));
+        return scope.Close(Undefined());
+    }
+
+    int flags = 0;
+    if (args.Length() >= 3) {
+        if (!args[2]->IsNumber()) {
+            ThrowException(Exception::TypeError(String::New("Expected number arg[2]")));
+            return scope.Close(Undefined());
+        }
+        flags = (int)args[2]->NumberValue();
+    }
+
+    String::Utf8Value key_str(args[0]->ToString());
+    String::Utf8Value val_str(args[1]->ToString());
+    int err = groove_file_metadata_set(gn_file->file, *key_str, *val_str, flags);
+    if (err < 0) {
+        ThrowException(Exception::Error(String::New("set metadata failed")));
+        return scope.Close(Undefined());
+    }
     return scope.Close(Undefined());
 }
 

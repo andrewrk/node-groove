@@ -37,15 +37,24 @@ In seconds.
 
 A comma-separated list of short names for the format.
 
-#### file.getMetadata()
+#### file.getMetadata(key, [flags])
 
-#### file.setMetadata()
+Flags:
+
+ * `groove.TAG_MATCH_CASE`
+ * `groove.TAG_DONT_OVERWRITE`
+ * `groove.TAG_APPEND`
+
+#### file.setMetadata(key, value, [flags])
+
+See `getMetadata` for flags.
 
 #### file.metadata
 
 For convenience, this is an object with all the metadata filled in.
 You can still query individually with `getMetadata`. In order
 to update metadata you must call `setMetadata` and then `save`.
+This property is *not* updated when you call `setMetadata`.
 
 #### file.dirty
 
