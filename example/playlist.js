@@ -16,8 +16,8 @@ groove.createPlayer(function(err, player) {
       cleanup(player);
       return;
     }
-    var artist = current.item.file.getMetadata('artist')
-    var title = current.item.file.getMetadata('title')
+    var artist = current.item.file.getMetadata('artist');
+    var title = current.item.file.getMetadata('title');
     console.log("Now playing:", artist, "-", title);
   });
 

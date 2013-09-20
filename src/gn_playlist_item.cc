@@ -1,5 +1,6 @@
 #include <node.h>
 #include "gn_playlist_item.h"
+#include "gn_file.h"
 
 using namespace v8;
 
@@ -18,6 +19,9 @@ void GNPlaylistItem::Init() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GroovePlaylistItem"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    // Fields
+    AddGetter(tpl, "file", GetFile);
+    AddGetter(tpl, "replayGainMode", GetReplayGainMode);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -42,3 +46,16 @@ Handle<Value> GNPlaylistItem::NewInstance(GroovePlaylistItem *playlist_item) {
     return scope.Close(instance);
 }
 
+Handle<Value> GNPlaylistItem::GetFile(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
+    return scope.Close(GNFile::NewInstance(gn_pl_item->playlist_item->file));
+}
+Handle<Value> GNPlaylistItem::GetReplayGainMode(Local<String> property,
+        const AccessorInfo &info)
+{
+    HandleScope scope;
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
+    int mode = gn_pl_item->playlist_item->replaygain_mode;
+    return scope.Close(Number::New(mode));
+}

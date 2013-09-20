@@ -155,7 +155,7 @@ that you open with `groove.open`. `player.remove` will not close files.
 
 #### player.position()
 
-Returns {item, pos} where `item` is the playlist item currently playing
+Returns `{item, pos}` where `item` is the playlist item currently playing
 and `pos` is how many seconds into the song the play head is.
 
 #### player.playing()
@@ -197,6 +197,15 @@ them, because you want to make sure that entire albums are scanned at once.
 Defaults to 0.25.
 
 #### player.getReplayGainDefault()
+
+### GroovePlaylistItem
+
+These are not instantiated directly; instead they are returned from
+`player.playlist()`.
+
+#### item.file
+
+#### item.replayGainMode
 
 ### GrooveReplayGainScan
 

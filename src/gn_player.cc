@@ -172,7 +172,6 @@ Handle<Value> GNPlayer::Count(const Arguments& args) {
 
 Handle<Value> GNPlayer::EventPoll(const Arguments& args) {
     HandleScope scope;
-    
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     int ret = groove_player_event_poll(gn_player->player, gn_player->event);
 
@@ -190,7 +189,6 @@ Handle<Value> GNPlayer::SetReplayGainMode(const Arguments& args) {
 
 
 Handle<Value> GNPlayer::SetReplayGainPreamp(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     groove_player_set_replaygain_preamp(gn_player->player, args[0]->NumberValue());
@@ -198,7 +196,6 @@ Handle<Value> GNPlayer::SetReplayGainPreamp(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::GetReplayGainPreamp(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     double val = groove_player_get_replaygain_preamp(gn_player->player);
@@ -207,7 +204,6 @@ Handle<Value> GNPlayer::GetReplayGainPreamp(const Arguments& args) {
 
 
 Handle<Value> GNPlayer::SetReplayGainDefault(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     groove_player_set_replaygain_default(gn_player->player, args[0]->NumberValue());
@@ -215,7 +211,6 @@ Handle<Value> GNPlayer::SetReplayGainDefault(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::GetReplayGainDefault(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     double val = groove_player_get_replaygain_default(gn_player->player);
