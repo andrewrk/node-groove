@@ -3,9 +3,6 @@
 Node.js bindings to [libgroove](https://github.com/superjoe30/libgroove) -
 generic music player backend library.
 
-Note: GroovePlayer and GrooveReplayGainScan are documented but the bindings
-are not fully completed.
-
 ## Usage
 
 1. Install libgroove to your system.
@@ -208,6 +205,9 @@ These are not instantiated directly; instead they are returned from
 #### item.replayGainMode
 
 ### GrooveReplayGainScan
+
+**Note**: GrooveReplayGainScan is documented but the bindings are
+not yet implemented.
 
 #### groove.createReplayGainScan(callback)
 
