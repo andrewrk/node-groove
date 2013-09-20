@@ -12,11 +12,10 @@ class GNFile : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> Open(const v8::Arguments& args);
 
+        GrooveFile *file;
     private:
         GNFile();
         ~GNFile();
-
-        GrooveFile *file;
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);

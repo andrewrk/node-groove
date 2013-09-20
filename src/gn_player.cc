@@ -1,6 +1,7 @@
 #include <node.h>
 #include "gn_player.h"
 #include "gn_playlist_item.h"
+#include "gn_file.h"
 
 using namespace v8;
 
@@ -118,7 +119,14 @@ Handle<Value> GNPlayer::Insert(const Arguments& args) {
 
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args[0]->ToObject());
+    GroovePlaylistItem *item = NULL;
+    if (!args[1]->IsObject() && !args[1]->IsUndefined()) {
+        GNPlaylistItem *gn_pl_item =
+            node::ObjectWrap::Unwrap<GNPlaylistItem>(args[1]->ToObject());
+        item = gn_pl_item->playlist_item;
+    }
+    groove_player_insert(gn_player->player, gn_file->file, item);
     return scope.Close(Undefined());
 }
 
