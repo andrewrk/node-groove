@@ -3,7 +3,7 @@
 var groove = require('groove');
 var assert = require('assert');
 var findit = require('findit'); // npm install findit
-var Pend = require('pend'); // npm install pend
+var Batch = require('batch'); // npm install pend
 var fs = require('fs');
 var path = require('path');
 
@@ -12,12 +12,12 @@ if (process.argv.length < 3) usage();
 
 groove.createReplayGainScan(function(err, scan) {
   assert.ifError(err);
-  var pend = new Pend();
+  var batch = new Batch();
   for (var i = 2; i < process.argv.length; i += 1) {
     var arg = process.argv[i];
-    pend.go(addAllFn(arg));
+    batch.push(addAllFn(arg));
   }
-  pend.wait(function(err) {
+  batch.end(function(err) {
     scan.on('progress', function(progress) {
       process.stderr.write("\rmetadata " +
         progress.metadataCurrent + "/" + progress.metadataTotal +

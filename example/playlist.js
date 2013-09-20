@@ -2,11 +2,9 @@
 
 var groove = require('../');
 var assert = require('assert');
-var Pend = require('pend'); // npm install pend
+var Batch = require('batch'); // npm install batch
 
 if (process.argv.length < 3) usage();
-
-groove.setLogging(groove.LOG_INFO);
 
 groove.createPlayer(function(err, player) {
   assert.ifError(err);
@@ -23,41 +21,36 @@ groove.createPlayer(function(err, player) {
     console.log("Now playing:", artist, "-", title);
   });
 
-  var pend = new Pend();
+  var batch = new Batch();
   for (var i = 2; i < process.argv.length; i += 1) {
-    pend.go(addFileFn(process.argv[i]));
+    batch.push(openFileFn(process.argv[i]));
   }
-  function addFileFn(filename) {
+  batch.end(function(err, files) {
+    files.forEach(function(file) {
+      if (file) {
+        player.insert(file, null);
+      }
+    });
+  });
+  function openFileFn(filename) {
     return function(cb) {
-      groove.open(filename, function(err, file) {
-        if (err) {
-          console.error("unable to open", filename, err.stack);
-        } else {
-          player.insert(file, null);
-        }
-        cb();
-      });
+      groove.open(filename, cb);
     };
   }
 });
 
 function cleanup(player) {
-  var pend = new Pend();
-  player.playlist().forEach(function(playlistItem) {
-    pend.go(destroyPlItemFn(playlistItem));
-  });
-  pend.wait(function() {
-    player.destroy(assert.ifError);
-  });
-}
-
-function destroyPlItemFn(playlistItem) {
-  return function(cb) {
-    playlistItem.file.close(function(err) {
-      if (err) console.error("error closing file:", err.stack);
-      cb();
+  var batch = new Batch();
+  var files = player.playlist().map(function(item) { return item.file; });
+  player.clear();
+  files.forEach(function(file) {
+    batch.push(function(cb) {
+      file.close(cb);
     });
-  };
+  });
+  batch.end(function(err) {
+    player.destroy();
+  });
 }
 
 function usage() {
