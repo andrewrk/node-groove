@@ -41,7 +41,7 @@ groove.createPlayer(function(err, player) {
 
 function cleanup(player) {
   var pend = new Pend();
-  player.playlist.forEach(function(playlistItem) {
+  player.playlist().forEach(function(playlistItem) {
     pend.go(destroyPlItemFn(playlistItem));
   });
   pend.wait(function() {

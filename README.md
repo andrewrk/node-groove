@@ -104,9 +104,10 @@ The string that was passed to `groove.open`
 
 `callback(err)`
 
-#### player.playlist
+#### player.playlist()
 
-Read only. Use `player.insert` and `player.remove` to modify.
+Returns a read-only array of playlist items.
+Use `player.insert` and `player.remove` to modify.
 
 `[playlistItem1, playlistItem2, ...]`
 

@@ -1,6 +1,7 @@
 #include <node.h>
 #include "gn_file.h"
 #include "gn_player.h"
+#include "gn_playlist_item.h"
 
 using namespace v8;
 using namespace node;
@@ -26,6 +27,7 @@ void Initialize(Handle<Object> exports) {
 
     GNFile::Init();
     GNPlayer::Init();
+    GNPlaylistItem::Init();
 
     SetProperty(exports, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(exports, "LOG_ERROR", GROOVE_LOG_ERROR);

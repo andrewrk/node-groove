@@ -67,7 +67,7 @@ test("create and destroy empty player", function(t) {
     t.plan(3);
     groove.createPlayer(function(err, player) {
         t.ok(!err, "creating player");
-        t.equivalent(player.playlist, [], "empty playlist");
+        t.equivalent(player.playlist(), [], "empty playlist");
         player.destroy(function(err) {
             t.ok(!err, "destroying player");
         });

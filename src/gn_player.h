@@ -22,10 +22,8 @@ class GNPlayer : public node::ObjectWrap {
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
 
-        static v8::Handle<v8::Value> GetPlaylist(v8::Local<v8::String> property,
-                const v8::AccessorInfo &info);
-
         static v8::Handle<v8::Value> Destroy(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Playlist(const v8::Arguments& args);
         static v8::Handle<v8::Value> Play(const v8::Arguments& args);
         static v8::Handle<v8::Value> Pause(const v8::Arguments& args);
         static v8::Handle<v8::Value> Seek(const v8::Arguments& args);

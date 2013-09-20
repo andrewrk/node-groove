@@ -1,5 +1,6 @@
 #include <node.h>
 #include "gn_player.h"
+#include "gn_playlist_item.h"
 
 using namespace v8;
 
@@ -31,6 +32,7 @@ void GNPlayer::Init() {
     // Methods
     AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
+    AddMethod(tpl, "playlist", Playlist);
     AddMethod(tpl, "pause", Pause);
     AddMethod(tpl, "seek", Seek);
     AddMethod(tpl, "insert", Insert);
@@ -67,31 +69,48 @@ Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     gn_player->player = player;
 
-    instance->Set(String::NewSymbol("playlist"), Array::New());
-
     return scope.Close(instance);
 }
 
 Handle<Value> GNPlayer::Play(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
+    groove_player_play(gn_player->player);
     return scope.Close(Undefined());
 }
 
-Handle<Value> GNPlayer::Pause(const Arguments& args) {
-
+Handle<Value> GNPlayer::Playlist(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
+
+    Local<Array> playlist = Array::New();
+
+    GroovePlaylistItem *item = gn_player->player->playlist_head;
+    int i = 0;
+    while (item) {
+        playlist->Set(Number::New(i), GNPlaylistItem::NewInstance(item));
+        item = item->next;
+    }
+
+    return scope.Close(playlist);
+}
+
+Handle<Value> GNPlayer::Pause(const Arguments& args) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
+    groove_player_pause(gn_player->player);
     return scope.Close(Undefined());
 }
 
 Handle<Value> GNPlayer::Seek(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
+    GNPlaylistItem *gn_playlist_item =
+        node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
+
+    double pos = args[1]->NumberValue();
+    groove_player_seek(gn_player->player, gn_playlist_item->playlist_item, pos);
+
     return scope.Close(Undefined());
 }
 
