@@ -116,12 +116,11 @@ Handle<Value> GNPlayer::Seek(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::Insert(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args[0]->ToObject());
     GroovePlaylistItem *item = NULL;
-    if (!args[1]->IsObject() && !args[1]->IsUndefined()) {
+    if (!args[1]->IsNull() && !args[1]->IsUndefined()) {
         GNPlaylistItem *gn_pl_item =
             node::ObjectWrap::Unwrap<GNPlaylistItem>(args[1]->ToObject());
         item = gn_pl_item->playlist_item;
@@ -131,19 +130,23 @@ Handle<Value> GNPlayer::Insert(const Arguments& args) {
 }
 
 Handle<Value> GNPlayer::Remove(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
+    groove_player_remove(gn_player->player, gn_pl_item->playlist_item);
     return scope.Close(Undefined());
 }
 
 Handle<Value> GNPlayer::Position(const Arguments& args) {
-
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    fprintf(stderr, "TODO: implement\n");
-    return scope.Close(Undefined());
+    GroovePlaylistItem *item;
+    double pos;
+    groove_player_position(gn_player->player, &item, &pos);
+    Local<Object> obj = Object::New();
+    obj->Set(String::NewSymbol("pos"), Number::New(pos));
+    obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+    return scope.Close(obj);
 }
 
 Handle<Value> GNPlayer::Playing(const Arguments& args) {
