@@ -145,7 +145,11 @@ Handle<Value> GNPlayer::Position(const Arguments& args) {
     groove_player_position(gn_player->player, &item, &pos);
     Local<Object> obj = Object::New();
     obj->Set(String::NewSymbol("pos"), Number::New(pos));
-    obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+    if (item) {
+        obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+    } else {
+        obj->Set(String::NewSymbol("item"), Null());
+    }
     return scope.Close(obj);
 }
 

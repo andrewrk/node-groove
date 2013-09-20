@@ -6,6 +6,8 @@ var Pend = require('pend'); // npm install pend
 
 if (process.argv.length < 3) usage();
 
+groove.setLogging(groove.LOG_INFO);
+
 groove.createPlayer(function(err, player) {
   assert.ifError(err);
 
