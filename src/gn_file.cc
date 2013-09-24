@@ -179,9 +179,14 @@ static void CloseAfter(uv_work_t *req) {
     HandleScope scope;
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
 
+    TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), 0, NULL);
 
     delete r;
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
 }
 
 Handle<Value> GNFile::Close(const Arguments& args) {
@@ -228,11 +233,16 @@ static void OpenAfter(uv_work_t *req) {
         argv[0] = Exception::Error(String::New("open file failed"));
         argv[1] = Null();
     }
+    TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), 2, argv);
 
     // cleanup
     delete r->filename;
     delete r;
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
 }
 
 Handle<Value> GNFile::Open(const Arguments& args) {
@@ -280,9 +290,14 @@ static void SaveAfter(uv_work_t *req) {
     } else {
         argv[0] = Null();
     }
+    TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
 }
 
 Handle<Value> GNFile::Save(const Arguments& args) {

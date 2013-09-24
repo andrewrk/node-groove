@@ -256,10 +256,14 @@ static void CreateAfter(uv_work_t *req) {
         argv[0] = Exception::Error(String::New("create player failed"));
         argv[1] = Null();
     }
+    TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
 
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
 }
 
 Handle<Value> GNPlayer::Create(const Arguments& args) {
@@ -298,9 +302,14 @@ static void DestroyAfter(uv_work_t *req) {
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     argv[0] = Null();
+    TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
 }
 
 Handle<Value> GNPlayer::Destroy(const Arguments& args) {
