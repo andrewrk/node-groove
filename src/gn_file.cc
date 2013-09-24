@@ -27,6 +27,7 @@ void GNFile::Init() {
     // Fields
     AddGetter(tpl, "filename", GetFilename);
     AddGetter(tpl, "dirty", GetDirty);
+    AddGetter(tpl, "id", GetId);
     // Methods
     AddMethod(tpl, "close", Close);
     AddMethod(tpl, "getMetadata", GetMetadata);
@@ -63,6 +64,14 @@ Handle<Value> GNFile::GetDirty(Local<String> property, const AccessorInfo &info)
     HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     return scope.Close(Boolean::New(gn_file->file->dirty));
+}
+
+Handle<Value> GNFile::GetId(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%p", gn_file->file);
+    return scope.Close(String::New(buf));
 }
 
 Handle<Value> GNFile::GetFilename(Local<String> property, const AccessorInfo &info) {

@@ -22,9 +22,10 @@ test("open fails for bogus file", function(t) {
 });
 
 test("open file and read metadata", function(t) {
-    t.plan(9);
+    t.plan(10);
     groove.open(testOgg, function(err, file) {
         t.ok(!err);
+        t.ok(file.id);
         t.equal(file.filename, testOgg);
         t.equal(file.dirty, false);
         t.equal(file.metadata().TITLE, 'Danse Macabre');
@@ -63,13 +64,33 @@ test("update metadata", function(t) {
     }
 });
 
-test("create and destroy empty player", function(t) {
-    t.plan(3);
+test("create and destroy empty player", function (t) {
+    t.plan(4);
     groove.createPlayer(function(err, player) {
+        t.ok(player.id);
         t.ok(!err, "creating player");
         t.equivalent(player.playlist(), [], "empty playlist");
         player.destroy(function(err) {
             t.ok(!err, "destroying player");
+        });
+    });
+});
+
+test("playlist item ids", function(t) {
+    t.plan(5);
+    groove.createPlayer(function(err, player) {
+        t.ok(!err, "creating player");
+        player.pause();
+        t.equal(player.playing(), false);
+        groove.open(testOgg, function(err, file) {
+            t.ok(!err, "opening file");
+            player.insert(file, null);
+            var items1 = player.playlist();
+            var items2 = player.playlist();
+            t.equal(items1[0].id, items2[0].id);
+            player.destroy(function(err) {
+                t.ok(!err, "destroying player");
+            });
         });
     });
 });

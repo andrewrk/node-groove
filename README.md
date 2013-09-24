@@ -204,6 +204,13 @@ These are not instantiated directly; instead they are returned from
 
 #### item.replayGainMode
 
+#### item.id
+
+Every time you obtain a playlist item from groove, you will get a fresh
+JavaScript object, but it might point to the same underlying libgroove pointer
+as another. The `id` field is a way to check if two playlist items reference
+the same one.
+
 ### GrooveReplayGainScan
 
 **Note**: GrooveReplayGainScan is documented but the bindings are

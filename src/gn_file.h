@@ -22,6 +22,8 @@ class GNFile : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> GetDirty(v8::Local<v8::String> property,
                 const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> GetId(v8::Local<v8::String> property,
+                const v8::AccessorInfo &info);
         static v8::Handle<v8::Value> GetFilename(v8::Local<v8::String> property,
                 const v8::AccessorInfo &info);
 

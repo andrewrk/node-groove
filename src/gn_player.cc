@@ -30,6 +30,8 @@ void GNPlayer::Init() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GroovePlayer"));
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
+    // Fields
+    AddGetter(tpl, "id", GetId);
     // Methods
     AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
@@ -71,6 +73,14 @@ Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
     gn_player->player = player;
 
     return scope.Close(instance);
+}
+
+Handle<Value> GNPlayer::GetId(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%p", gn_player->player);
+    return scope.Close(String::New(buf));
 }
 
 Handle<Value> GNPlayer::Play(const Arguments& args) {

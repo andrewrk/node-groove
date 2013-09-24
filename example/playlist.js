@@ -49,7 +49,9 @@ function cleanup(player) {
     });
   });
   batch.end(function(err) {
-    player.destroy();
+    player.destroy(function(err) {
+      if (err) console.error(err.stack);
+    });
   });
 }
 

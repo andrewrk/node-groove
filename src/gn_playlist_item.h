@@ -20,6 +20,8 @@ class GNPlaylistItem : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> GetFile(v8::Local<v8::String> property,
                 const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> GetId(v8::Local<v8::String> property,
+                const v8::AccessorInfo &info);
         static v8::Handle<v8::Value> GetReplayGainMode(v8::Local<v8::String> property,
                 const v8::AccessorInfo &info);
 
