@@ -135,8 +135,9 @@ Handle<Value> GNPlayer::Insert(const Arguments& args) {
             node::ObjectWrap::Unwrap<GNPlaylistItem>(args[1]->ToObject());
         item = gn_pl_item->playlist_item;
     }
-    groove_player_insert(gn_player->player, gn_file->file, item);
-    return scope.Close(Undefined());
+    GroovePlaylistItem *result = groove_player_insert(gn_player->player, gn_file->file, item);
+
+    return scope.Close(GNPlaylistItem::NewInstance(result));
 }
 
 Handle<Value> GNPlayer::Remove(const Arguments& args) {
