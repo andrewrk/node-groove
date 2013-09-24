@@ -101,6 +101,7 @@ Handle<Value> GNPlayer::Playlist(const Arguments& args) {
     while (item) {
         playlist->Set(Number::New(i), GNPlaylistItem::NewInstance(item));
         item = item->next;
+        i += 1;
     }
 
     return scope.Close(playlist);

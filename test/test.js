@@ -77,18 +77,20 @@ test("create and destroy empty player", function (t) {
 });
 
 test("playlist item ids", function(t) {
-    t.plan(6);
+    t.plan(7);
     groove.createPlayer(function(err, player) {
         t.ok(!err, "creating player");
         player.pause();
         t.equal(player.playing(), false);
         groove.open(testOgg, function(err, file) {
             t.ok(!err, "opening file");
-            var returned = player.insert(file, null);
+            var returned1 = player.insert(file, null);
+            var returned2 = player.insert(file, null);
             var items1 = player.playlist();
             var items2 = player.playlist();
             t.equal(items1[0].id, items2[0].id);
-            t.equal(items1[0].id, returned.id);
+            t.equal(items1[0].id, returned1.id);
+            t.equal(items2[1].id, returned2.id);
             player.destroy(function(err) {
                 t.ok(!err, "destroying player");
             });
