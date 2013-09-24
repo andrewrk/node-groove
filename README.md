@@ -120,10 +120,6 @@ Fires when a buffer underrun occurs. Ideally you'll never see this.
 
 `handler()`
 
-#### player.destroy(callback)
-
-`callback(err)`
-
 #### player.play()
 
 #### player.pause()
