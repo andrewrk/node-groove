@@ -151,6 +151,11 @@ that you open with `groove.open`. `player.remove` will not close files.
 Returns `{item, pos}` where `item` is the playlist item currently playing
 and `pos` is how many seconds into the song the play head is.
 
+#### player.decodePosition()
+
+Returns `{item, pos}` where `item` is the playlist item currently being
+decoded and `pos` is how many seconds into the song the decode head is.
+
 #### player.playing()
 
 Returns `true` or `false`.

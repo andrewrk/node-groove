@@ -41,6 +41,7 @@ void GNPlayer::Init() {
     AddMethod(tpl, "insert", Insert);
     AddMethod(tpl, "remove", Remove);
     AddMethod(tpl, "position", Position);
+    AddMethod(tpl, "decodePosition", DecodePosition);
     AddMethod(tpl, "playing", Playing);
     AddMethod(tpl, "clear", Clear);
     AddMethod(tpl, "count", Count);
@@ -147,6 +148,22 @@ Handle<Value> GNPlayer::Remove(const Arguments& args) {
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
     groove_player_remove(gn_player->player, gn_pl_item->playlist_item);
     return scope.Close(Undefined());
+}
+
+Handle<Value> GNPlayer::DecodePosition(const Arguments& args) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
+    GroovePlaylistItem *item;
+    double pos;
+    groove_player_decode_position(gn_player->player, &item, &pos);
+    Local<Object> obj = Object::New();
+    obj->Set(String::NewSymbol("pos"), Number::New(pos));
+    if (item) {
+        obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+    } else {
+        obj->Set(String::NewSymbol("item"), Null());
+    }
+    return scope.Close(obj);
 }
 
 Handle<Value> GNPlayer::Position(const Arguments& args) {

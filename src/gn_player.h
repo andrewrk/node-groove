@@ -33,6 +33,7 @@ class GNPlayer : public node::ObjectWrap {
         static v8::Handle<v8::Value> Insert(const v8::Arguments& args);
         static v8::Handle<v8::Value> Remove(const v8::Arguments& args);
         static v8::Handle<v8::Value> Position(const v8::Arguments& args);
+        static v8::Handle<v8::Value> DecodePosition(const v8::Arguments& args);
         static v8::Handle<v8::Value> Playing(const v8::Arguments& args);
         static v8::Handle<v8::Value> Clear(const v8::Arguments& args);
         static v8::Handle<v8::Value> Count(const v8::Arguments& args);
