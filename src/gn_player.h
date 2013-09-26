@@ -45,6 +45,9 @@ class GNPlayer : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> SetReplayGainDefault(const v8::Arguments& args);
         static v8::Handle<v8::Value> GetReplayGainDefault(const v8::Arguments& args);
+
+        static v8::Handle<v8::Value> SetVolume(const v8::Arguments& args);
+        static v8::Handle<v8::Value> GetVolume(const v8::Arguments& args);
 };
 
 #endif

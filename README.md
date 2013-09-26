@@ -168,6 +168,13 @@ Remove all playlist items.
 
 How many items are on the playlist.
 
+#### player.getVolume()
+
+#### player.setVolume(value)
+
+Between 0.0 and 1.0. You probably want to leave this at 1.0, since using
+replaygain will typically lower your volume a significant amount.
+
 #### player.setReplayGainMode(playlistItem, replayGainMode)
 
 `replayGainMode` can be:

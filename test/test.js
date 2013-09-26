@@ -77,7 +77,7 @@ test("create and destroy empty player", function (t) {
 });
 
 test("playlist item ids", function(t) {
-    t.plan(8);
+    t.plan(9);
     groove.createPlayer(function(err, player) {
         t.ok(!err, "creating player");
         player.pause();
@@ -85,6 +85,8 @@ test("playlist item ids", function(t) {
         groove.open(testOgg, function(err, file) {
             t.ok(!err, "opening file");
             t.ok(player.decodePosition);
+            t.equal(player.getVolume(), 1.0);
+            player.setVolume(1.0);
             var returned1 = player.insert(file, null);
             var returned2 = player.insert(file, null);
             var items1 = player.playlist();

@@ -51,6 +51,8 @@ void GNPlayer::Init() {
     AddMethod(tpl, "getReplayGainPreamp", GetReplayGainPreamp);
     AddMethod(tpl, "setReplayGainDefault", SetReplayGainDefault);
     AddMethod(tpl, "getReplayGainDefault", GetReplayGainDefault);
+    AddMethod(tpl, "setVolume", SetVolume);
+    AddMethod(tpl, "getVolume", GetVolume);
 
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
@@ -247,6 +249,20 @@ Handle<Value> GNPlayer::GetReplayGainDefault(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     double val = groove_player_get_replaygain_default(gn_player->player);
+    return scope.Close(Number::New(val));
+}
+
+Handle<Value> GNPlayer::SetVolume(const Arguments& args) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
+    groove_player_set_volume(gn_player->player, args[0]->NumberValue());
+    return scope.Close(Undefined());
+}
+
+Handle<Value> GNPlayer::GetVolume(const Arguments& args) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
+    double val = groove_player_get_volume(gn_player->player);
     return scope.Close(Number::New(val));
 }
 
