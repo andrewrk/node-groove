@@ -32,6 +32,7 @@ void GNPlayer::Init() {
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
     // Fields
     AddGetter(tpl, "id", GetId);
+    AddGetter(tpl, "volume", GetVolume);
     // Methods
     AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
@@ -46,13 +47,8 @@ void GNPlayer::Init() {
     AddMethod(tpl, "clear", Clear);
     AddMethod(tpl, "count", Count);
     AddMethod(tpl, "_eventPoll", EventPoll);
-    AddMethod(tpl, "setReplayGainMode", SetReplayGainMode);
-    AddMethod(tpl, "setReplayGainPreamp", SetReplayGainPreamp);
-    AddMethod(tpl, "getReplayGainPreamp", GetReplayGainPreamp);
-    AddMethod(tpl, "setReplayGainDefault", SetReplayGainDefault);
-    AddMethod(tpl, "getReplayGainDefault", GetReplayGainDefault);
+    AddMethod(tpl, "setItemGain", SetItemGain);
     AddMethod(tpl, "setVolume", SetVolume);
-    AddMethod(tpl, "getVolume", GetVolume);
 
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
@@ -84,6 +80,12 @@ Handle<Value> GNPlayer::GetId(Local<String> property, const AccessorInfo &info) 
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_player->player);
     return scope.Close(String::New(buf));
+}
+
+Handle<Value> GNPlayer::GetVolume(Local<String> property, const AccessorInfo &info) {
+    HandleScope scope;
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
+    return scope.Close(Number::New(gn_player->player->volume));
 }
 
 Handle<Value> GNPlayer::Play(const Arguments& args) {
@@ -133,13 +135,18 @@ Handle<Value> GNPlayer::Insert(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args[0]->ToObject());
-    GroovePlaylistItem *item = NULL;
+    double gain = 1.0;
     if (!args[1]->IsNull() && !args[1]->IsUndefined()) {
+        gain = args[1]->NumberValue();
+    }
+    GroovePlaylistItem *item = NULL;
+    if (!args[2]->IsNull() && !args[2]->IsUndefined()) {
         GNPlaylistItem *gn_pl_item =
-            node::ObjectWrap::Unwrap<GNPlaylistItem>(args[1]->ToObject());
+            node::ObjectWrap::Unwrap<GNPlaylistItem>(args[2]->ToObject());
         item = gn_pl_item->playlist_item;
     }
-    GroovePlaylistItem *result = groove_player_insert(gn_player->player, gn_file->file, item);
+    GroovePlaylistItem *result = groove_player_insert(gn_player->player,
+            gn_file->file, gain, item);
 
     return scope.Close(GNPlaylistItem::NewInstance(result));
 }
@@ -213,44 +220,15 @@ Handle<Value> GNPlayer::EventPoll(const Arguments& args) {
     return scope.Close(Number::New(ret > 0 ? gn_player->event->type : -1));
 }
 
-Handle<Value> GNPlayer::SetReplayGainMode(const Arguments& args) {
+Handle<Value> GNPlayer::SetItemGain(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
-    GrooveReplayGainMode mode = (GrooveReplayGainMode)(int)args[1]->NumberValue();
-    groove_player_set_replaygain_mode(gn_player->player, gn_pl_item->playlist_item, mode);
+    double gain = args[1]->NumberValue();
+    groove_player_set_gain(gn_player->player, gn_pl_item->playlist_item, gain);
     return scope.Close(Undefined());
 }
 
-
-Handle<Value> GNPlayer::SetReplayGainPreamp(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    groove_player_set_replaygain_preamp(gn_player->player, args[0]->NumberValue());
-    return scope.Close(Undefined());
-}
-
-Handle<Value> GNPlayer::GetReplayGainPreamp(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    double val = groove_player_get_replaygain_preamp(gn_player->player);
-    return scope.Close(Number::New(val));
-}
-
-
-Handle<Value> GNPlayer::SetReplayGainDefault(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    groove_player_set_replaygain_default(gn_player->player, args[0]->NumberValue());
-    return scope.Close(Undefined());
-}
-
-Handle<Value> GNPlayer::GetReplayGainDefault(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    double val = groove_player_get_replaygain_default(gn_player->player);
-    return scope.Close(Number::New(val));
-}
 
 Handle<Value> GNPlayer::SetVolume(const Arguments& args) {
     HandleScope scope;
@@ -258,14 +236,6 @@ Handle<Value> GNPlayer::SetVolume(const Arguments& args) {
     groove_player_set_volume(gn_player->player, args[0]->NumberValue());
     return scope.Close(Undefined());
 }
-
-Handle<Value> GNPlayer::GetVolume(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    double val = groove_player_get_volume(gn_player->player);
-    return scope.Close(Number::New(val));
-}
-
 
 struct CreateReq {
     uv_work_t req;

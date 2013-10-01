@@ -85,7 +85,7 @@ test("playlist item ids", function(t) {
         groove.open(testOgg, function(err, file) {
             t.ok(!err, "opening file");
             t.ok(player.decodePosition);
-            t.equal(player.getVolume(), 1.0);
+            t.equal(player.volume, 1.0);
             player.setVolume(1.0);
             var returned1 = player.insert(file, null);
             var returned2 = player.insert(file, null);

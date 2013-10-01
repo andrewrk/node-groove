@@ -39,8 +39,9 @@ groove.open(filename, function(err, file) {
   }
 
   console.log("duration", "=", file.duration());
-  for (key in file.metadata) {
-    value = file.metadata[key];
+  var metadata = file.metadata();
+  for (key in metadata) {
+    value = metadata[key];
     console.log(key, "=", value);
   }
   if (file.dirty) {

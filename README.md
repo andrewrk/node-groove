@@ -128,11 +128,14 @@ Fires when a buffer underrun occurs. Ideally you'll never see this.
 
 Seek to `playlistItem`, `position` seconds into the song.
 
-#### player.insert(file, nextPlaylistItem)
+#### player.insert(file, gain, nextPlaylistItem)
 
 Creates a new playlist item with file and puts it in the playlist before
 `nextPlaylistItem`. If `nextPlaylistItem` is `null`, appends the new
 item to the playlist.
+
+`gain` is a float format volume adjustment that applies only to this item.
+defaults to 1.0
 
 Returns the newly added playlist item.
 
@@ -168,40 +171,17 @@ Remove all playlist items.
 
 How many items are on the playlist.
 
-#### player.getVolume()
+#### player.volume
 
 #### player.setVolume(value)
 
 Between 0.0 and 1.0. You probably want to leave this at 1.0, since using
 replaygain will typically lower your volume a significant amount.
 
-#### player.setReplayGainMode(playlistItem, replayGainMode)
+#### player.setItemGain(playlistItem, gain)
 
-`replayGainMode` can be:
-
- * `groove.REPLAYGAINMODE_OFF`
- * `groove.REPLAYGAINMODE_TRACK`
- * `groove.REPLAYGAINMODE_ALBUM`
-
-#### player.setReplayGainPreamp(value)
-
-`value` - range 0.0 to 1.0 this is essentially a volume control that only
-applies when replaygain is turned on.
-
-Defaults to 0.75.
-
-#### player.getReplayGainPreamp()
-
-#### player.setReplayGainDefault(value)
-
-`value` - range 0.0 to 1.0 this is the replaygain adjustment to make
-if replaygain tags are missing. Note this library provides replaygain
-scanning capabilities but it is up to the music player app to perform
-them, because you want to make sure that entire albums are scanned at once.
-
-Defaults to 0.25.
-
-#### player.getReplayGainDefault()
+`gain` is a float that affects the volume of the specified playlist item only.
+To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
 
 ### GroovePlaylistItem
 
@@ -210,7 +190,7 @@ These are not instantiated directly; instead they are returned from
 
 #### item.file
 
-#### item.replayGainMode
+#### item.gain
 
 #### item.id
 
@@ -224,39 +204,34 @@ the same one.
 **Note**: GrooveReplayGainScan is documented but the bindings are
 not yet implemented.
 
-#### groove.createReplayGainScan(callback)
+#### groove.createReplayGainScan(fileList, progressInterval)
 
-`callback(err, scan)`
+returns a GrooveReplayGainScan
 
-#### scan.destroy(callback)
+#### scan.abort()
 
-Must be called to cleanup. If you call it during a scan it will cleanly abort.
-
-`callback(err)`
-
-#### scan.add(filename)
-
-Add a file to the scan. Nothing happens until you `exec()`.
-
-#### scan.exec()
-
-Starts the scan. You will receive progress events.
+Ends a scan early.
 
 #### scan.on('progress', handler)
 
-`handler(progress)`
+`handler(file, progress)`
 
-`progress` is an object with these properties:
+`file` - the GrooveFile that is being scanned
+`progress` - float from 0 to 1 how much done it is
 
- * `metadataCurrent`
- * `metadataTotal`
- * `scanningCurrent`
- * `scanningTotal`
- * `updateCurrent`
- * `updateTotal`
+#### scan.on('file', handler)
+
+`handler(file, gain, peak)`
+
+`file` - the GrooveFile that was scanned
+`gain` - suggested gain adjustment in dB of the file
+`peak` - sample peak in float format of the file
 
 #### scan.on('end', handler)
 
 When the scan is complete.
 
-`handler()`
+`handler(gain, peak)`
+
+`gain` - suggested gain adjustment in dB of all files scanned
+`peak` - sample peak in float format of all files scanned

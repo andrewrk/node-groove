@@ -22,7 +22,7 @@ void GNPlaylistItem::Init() {
     // Fields
     AddGetter(tpl, "file", GetFile);
     AddGetter(tpl, "id", GetId);
-    AddGetter(tpl, "replayGainMode", GetReplayGainMode);
+    AddGetter(tpl, "gain", GetGain);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -61,11 +61,11 @@ Handle<Value> GNPlaylistItem::GetId(Local<String> property, const AccessorInfo &
     return scope.Close(String::New(buf));
 }
 
-Handle<Value> GNPlaylistItem::GetReplayGainMode(Local<String> property,
+Handle<Value> GNPlaylistItem::GetGain(Local<String> property,
         const AccessorInfo &info)
 {
     HandleScope scope;
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
-    int mode = gn_pl_item->playlist_item->replaygain_mode;
-    return scope.Close(Number::New(mode));
+    double gain = gn_pl_item->playlist_item->gain;
+    return scope.Close(Number::New(gain));
 }

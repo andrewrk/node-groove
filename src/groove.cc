@@ -38,15 +38,8 @@ void Initialize(Handle<Object> exports) {
     SetProperty(exports, "TAG_DONT_OVERWRITE", GROOVE_TAG_DONT_OVERWRITE);
     SetProperty(exports, "TAG_APPEND", GROOVE_TAG_APPEND);
 
-    SetProperty(exports, "REPLAYGAINMODE_OFF", GROOVE_REPLAYGAINMODE_OFF);
-    SetProperty(exports, "REPLAYGAINMODE_TRACK", GROOVE_REPLAYGAINMODE_TRACK);
-    SetProperty(exports, "REPLAYGAINMODE_ALBUM", GROOVE_REPLAYGAINMODE_ALBUM);
-
     SetProperty(exports, "_PLAYER_EVENT_NOWPLAYING", GROOVE_PLAYER_EVENT_NOWPLAYING);
     SetProperty(exports, "_PLAYER_EVENT_BUFFERUNDERRUN", GROOVE_PLAYER_EVENT_BUFFERUNDERRUN);
-
-    SetProperty(exports, "_RG_EVENT_PROGRESS", GROOVE_RG_EVENT_PROGRESS);
-    SetProperty(exports, "_RG_EVENT_COMPLETE", GROOVE_RG_EVENT_COMPLETE);
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "open", GNFile::Open);
