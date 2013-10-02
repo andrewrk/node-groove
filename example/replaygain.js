@@ -1,52 +1,39 @@
 /* replaygain scanner */
 
-var groove = require('groove');
-var assert = require('assert');
-var findit = require('findit'); // npm install findit
-var Batch = require('batch'); // npm install pend
-var fs = require('fs');
-var path = require('path');
+var groove = require('../');
+var Batch = require('batch'); // npm install batch
 
 
-if (process.argv.length < 3) usage();
+var filenames = process.argv.slice(2);
+if (filenames.length === 0) usage();
 
-groove.createReplayGainScan(function(err, scan) {
-  assert.ifError(err);
-  var batch = new Batch();
-  for (var i = 2; i < process.argv.length; i += 1) {
-    var arg = process.argv[i];
-    batch.push(addAllFn(arg));
+var batch = new Batch();
+
+filenames.forEach(queueOpenFn);
+batch.end(function(err, files) {
+  if (err) {
+    console.error("Error opening file:", err.stack);
+    return;
   }
-  batch.end(function(err) {
-    scan.on('progress', function(progress) {
-      process.stderr.write("\rmetadata " +
-        progress.metadataCurrent + "/" + progress.metadataTotal +
-        " scanning " + progress.scanningCurrent + "/" + progress.scanningTotal +
-        " update " + progress.updateCurrent + "/" + progress.updateTotal +
-        "          ");
-      fs.fsync(process.stderr.fd);
-    });
-    scan.on('end', function() {
-      scan.destroy();
-      console.error("\nscan complete.");
-    });
-    scan.exec();
+  var scan = groove.createReplayGainScan(files, 10);
+  scan.on('error', function(err) {
+    console.error("Error scanning:", err.stack);
   });
-
-  function addAllFn(dir) {
-    return function(cb) {
-      var finder = findit(dir);
-      finder.on('file', function(file, stat) {
-        scan.add(path.join(dir, file));
-      });
-      finder.on('end', function() {
-        cb();
-      });
-    };
-  }
+  scan.on('end', function(gain, peak) {
+    console.log("all files gain:", gain, "all files peak:", peak);
+  });
+  scan.on('file', function(file, gain, peak) {
+    console.log(file.filename, "gain:", gain, "peak:", peak);
+  });
 });
 
+function queueOpenFn(filename) {
+  batch.push(function(cb) {
+    groove.open(filename, cb);
+  });
+}
+
 function usage() {
-  console.error("Usage:", process.argv[0], process.argv[1], "dir1 dir2 ...");
+  console.error("Usage: node replaygain.js file1 file2 ...");
   process.exit(1);
 }

@@ -62,9 +62,12 @@ struct ExecReq {
     double peak;
     int result;
     int file_count;
+    int result_count;
     Persistent<Function> file_progress_cb;
     Persistent<Function> file_complete_cb;
     Persistent<Function> end_cb;
+    struct ExecFileReq *file_reqs;
+    uv_mutex_t mutex;
 };
 
 struct ExecFileReq {
@@ -77,6 +80,26 @@ struct ExecFileReq {
     double gain;
     double peak;
 };
+
+static void MaybeCleanupReq(ExecReq *r) {
+    uv_mutex_lock(&r->mutex);
+    r->result_count += 1;
+    bool done = r->result_count == r->file_count + 1;
+    uv_mutex_unlock(&r->mutex);
+
+    if (!done) return;
+
+    for (int i = 0; i < r->file_count; i += 1) {
+        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].complete_async), NULL);
+        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].progress_async), NULL);
+        uv_rwlock_destroy(&r->file_reqs[i].rwlock);
+    }
+
+    delete[] r->file_reqs;
+
+    uv_mutex_destroy(&r->mutex);
+    delete r;
+}
 
 static void CompleteAsyncCallback(uv_async_t *handle, int status) {
     HandleScope scope;
@@ -97,6 +120,8 @@ static void CompleteAsyncCallback(uv_async_t *handle, int status) {
 
     TryCatch try_catch;
     req->req->file_complete_cb->Call(Context::GetCurrent()->Global(), argc, argv);
+
+    MaybeCleanupReq(req->req);
 
     if (try_catch.HasCaught()) {
         node::FatalException(try_catch);
@@ -170,7 +195,7 @@ static void ExecAfter(uv_work_t *req) {
     TryCatch try_catch;
     r->end_cb->Call(Context::GetCurrent()->Global(), argc, argv);
 
-    delete r;
+    MaybeCleanupReq(r);
 
     if (try_catch.HasCaught()) {
         node::FatalException(try_catch);
@@ -195,6 +220,7 @@ Handle<Value> GNScan::Create(const Arguments& args) {
 
     ExecReq *request = new ExecReq;
     request->file_count = file_list->Length();
+    request->result_count = 0;
     request->req.data = request;
     request->scan = gn_scan->scan;
     request->scan->file_complete = ExecFileComplete;
@@ -202,18 +228,19 @@ Handle<Value> GNScan::Create(const Arguments& args) {
     request->file_progress_cb = Persistent<Function>::New(Local<Function>::Cast(args[2]));
     request->file_complete_cb = Persistent<Function>::New(Local<Function>::Cast(args[3]));
     request->end_cb = Persistent<Function>::New(Local<Function>::Cast(args[4]));
+    request->file_reqs = new ExecFileReq[request->file_count];
+    
+    uv_mutex_init(&request->mutex);
 
     for (int i = 0; i < request->file_count; i += 1) {
         GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(file_list->Get(i)->ToObject());
-        ExecFileReq *file_request = new ExecFileReq;
+        ExecFileReq *file_request = &request->file_reqs[i];
         file_request->req = request;
         file_request->file = gn_file->file;
 
-        // TODO uv_close after we're done?
         uv_async_init(uv_default_loop(), &file_request->complete_async, CompleteAsyncCallback);
         uv_async_init(uv_default_loop(), &file_request->progress_async, ProgressAsyncCallback);
 
-        // TODO uv_rwlock_destroy after we're done
         uv_rwlock_init(&file_request->rwlock);
 
         file_request->complete_async.data = file_request;

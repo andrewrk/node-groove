@@ -101,3 +101,21 @@ test("playlist item ids", function(t) {
     });
 });
 
+test("replaygain scan", function(t) {
+  t.plan(6);
+  groove.open(testOgg, function(err, theFile) {
+    t.ok(!err);
+    var scan = groove.createReplayGainScan([theFile], 10);
+    scan.on('file', function(file, gain, peak) {
+      t.equal(file.id, theFile.id);
+      t.equal(Math.round(gain * 1000), -9294);
+      t.equal(Math.round(peak * 1000), 1026);
+      console.log("file", file.filename, "gain", gain, "peak", peak);
+    });
+    scan.on('end', function(gain, peak) {
+      t.equal(Math.round(gain * 1000), -9294);
+      t.equal(Math.round(peak * 1000), 1026);
+      console.log("end", "gain", gain, "peak", peak);
+    });
+  });
+});
