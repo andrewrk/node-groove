@@ -6,10 +6,8 @@
 using namespace v8;
 
 GNPlayer::GNPlayer() {
-    event = new GroovePlayerEvent;
 };
 GNPlayer::~GNPlayer() {
-    delete event;
 };
 
 Persistent<Function> GNPlayer::constructor;
@@ -46,7 +44,6 @@ void GNPlayer::Init() {
     AddMethod(tpl, "playing", Playing);
     AddMethod(tpl, "clear", Clear);
     AddMethod(tpl, "count", Count);
-    AddMethod(tpl, "_eventPoll", EventPoll);
     AddMethod(tpl, "setItemGain", SetItemGain);
     AddMethod(tpl, "setVolume", SetVolume);
 
@@ -212,14 +209,6 @@ Handle<Value> GNPlayer::Count(const Arguments& args) {
     return scope.Close(Number::New(count));
 }
 
-Handle<Value> GNPlayer::EventPoll(const Arguments& args) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
-    int ret = groove_player_event_poll(gn_player->player, gn_player->event);
-
-    return scope.Close(Number::New(ret > 0 ? gn_player->event->type : -1));
-}
-
 Handle<Value> GNPlayer::SetItemGain(const Arguments& args) {
     HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
@@ -240,8 +229,38 @@ Handle<Value> GNPlayer::SetVolume(const Arguments& args) {
 struct CreateReq {
     uv_work_t req;
     GroovePlayer *player;
+    Persistent<Function> event_cb;
     Persistent<Function> callback;
 };
+
+static void EventAsyncCb(uv_async_t *handle, int status) {
+    HandleScope scope;
+
+    EventContext *context = reinterpret_cast<EventContext *>(handle->data);
+
+    // flush events
+    GroovePlayerEvent event;
+
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    while (groove_player_event_poll(context->player, &event) > 0) {
+        argv[0] = Number::New(event.type);
+
+        TryCatch try_catch;
+        context->event_cb->Call(Context::GetCurrent()->Global(), argc, argv);
+
+        if (try_catch.HasCaught()) {
+            node::FatalException(try_catch);
+        }
+    }
+}
+
+static void EventThreadEntry(void *arg) {
+    EventContext *context = reinterpret_cast<EventContext *>(arg);
+    while (groove_player_event_peek(context->player, 1) > 0) {
+        uv_async_send(&context->event_async);
+    }
+}
 
 static void CreateAsync(uv_work_t *req) {
     CreateReq *r = reinterpret_cast<CreateReq *>(req->data);
@@ -255,12 +274,25 @@ static void CreateAfter(uv_work_t *req) {
     const unsigned argc = 2;
     Handle<Value> argv[argc];
     if (r->player) {
+        Handle<Value> instance = GNPlayer::NewInstance(r->player);
         argv[0] = Null();
-        argv[1] = GNPlayer::NewInstance(r->player);
+        argv[1] = instance;
+
+        GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance->ToObject());
+        EventContext *context = new EventContext;
+        gn_player->event_context = context;
+
+        uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
+        context->event_async.data = context;
+
+        context->event_cb = r->event_cb;
+        context->player = r->player;
+        uv_thread_create(&context->event_thread, EventThreadEntry, context);
     } else {
         argv[0] = Exception::Error(String::New("create player failed"));
         argv[1] = Null();
     }
+
     TryCatch try_catch;
     r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
@@ -278,10 +310,16 @@ Handle<Value> GNPlayer::Create(const Arguments& args) {
         ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
         return scope.Close(Undefined());
     }
+
+    if (args.Length() < 2 || !args[1]->IsFunction()) {
+        ThrowException(Exception::TypeError(String::New("Expected function arg[1]")));
+        return scope.Close(Undefined());
+    }
     CreateReq *request = new CreateReq;
 
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
     request->req.data = request;
+    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
+    request->event_cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
 
     uv_queue_work(uv_default_loop(), &request->req, CreateAsync,
             (uv_after_work_cb)CreateAfter);
@@ -293,18 +331,24 @@ struct DestroyReq {
     uv_work_t req;
     GroovePlayer *player;
     Persistent<Function> callback;
+    EventContext *event_context;
 };
+
+static void DestroyAsyncFree(uv_handle_t *handle) {
+    EventContext *context = reinterpret_cast<EventContext *>(handle->data);
+    delete context;
+}
 
 static void DestroyAsync(uv_work_t *req) {
     DestroyReq *r = reinterpret_cast<DestroyReq *>(req->data);
     groove_destroy_player(r->player);
+    uv_thread_join(&r->event_context->event_thread);
+    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DestroyAsyncFree);
 }
 
 static void DestroyAfter(uv_work_t *req) {
     HandleScope scope;
     DestroyReq *r = reinterpret_cast<DestroyReq *>(req->data);
-
-    r->player = NULL;
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
@@ -327,15 +371,18 @@ Handle<Value> GNPlayer::Destroy(const Arguments& args) {
         ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
         return scope.Close(Undefined());
     }
+
     DestroyReq *request = new DestroyReq;
 
+    request->req.data = request;
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
     request->player = gn_player->player;
-    request->req.data = request;
+    request->event_context = gn_player->event_context;
+
+    gn_player->event_context = NULL;
 
     uv_queue_work(uv_default_loop(), &request->req, DestroyAsync,
             (uv_after_work_cb)DestroyAfter);
 
     return scope.Close(Undefined());
 }
-
