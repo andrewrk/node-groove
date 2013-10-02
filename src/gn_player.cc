@@ -304,6 +304,8 @@ static void DestroyAfter(uv_work_t *req) {
     HandleScope scope;
     DestroyReq *r = reinterpret_cast<DestroyReq *>(req->data);
 
+    r->player = NULL;
+
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     argv[0] = Null();

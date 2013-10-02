@@ -6,7 +6,8 @@
           "src/groove.cc",
           "src/gn_file.cc",
           "src/gn_player.cc",
-          "src/gn_playlist_item.cc"
+          "src/gn_playlist_item.cc",
+          "src/gn_scan.cc"
         ],
         "libraries": [
             "-lgroove"

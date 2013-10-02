@@ -201,12 +201,12 @@ the same one.
 
 ### GrooveReplayGainScan
 
-**Note**: GrooveReplayGainScan is documented but the bindings are
-not yet implemented.
-
 #### groove.createReplayGainScan(fileList, progressInterval)
 
 returns a GrooveReplayGainScan
+
+`fileList` is an array of GrooveFiles
+`progressInterval` is number of seconds to decode before 'progress' is emitted.
 
 #### scan.abort()
 
@@ -235,3 +235,6 @@ When the scan is complete.
 
 `gain` - suggested gain adjustment in dB of all files scanned
 `peak` - sample peak in float format of all files scanned
+
+#### scan.on('error', handler)
+

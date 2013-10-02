@@ -2,6 +2,7 @@
 #include "gn_file.h"
 #include "gn_player.h"
 #include "gn_playlist_item.h"
+#include "gn_scan.h"
 
 using namespace v8;
 using namespace node;
@@ -28,6 +29,7 @@ void Initialize(Handle<Object> exports) {
     GNFile::Init();
     GNPlayer::Init();
     GNPlaylistItem::Init();
+    GNScan::Init();
 
     SetProperty(exports, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(exports, "LOG_ERROR", GROOVE_LOG_ERROR);
@@ -44,6 +46,7 @@ void Initialize(Handle<Object> exports) {
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "open", GNFile::Open);
     SetMethod(exports, "createPlayer", GNPlayer::Create);
+    SetMethod(exports, "createReplayGainScan", GNScan::Create);
 }
 
 NODE_MODULE(groove, Initialize)
