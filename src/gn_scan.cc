@@ -81,6 +81,26 @@ struct ExecFileReq {
     double peak;
 };
 
+static void MaybeDestroyReq(uv_handle_t *handle) {
+    ExecFileReq *req = reinterpret_cast<ExecFileReq *>(handle->data);
+    ExecReq *r = req->req;
+
+    uv_mutex_lock(&r->mutex);
+    r->result_count += 1;
+    bool done = r->result_count == r->file_count * 2;
+    uv_mutex_unlock(&r->mutex);
+
+    if (!done) return;
+
+    for (int i = 0; i < r->file_count; i += 1) {
+        uv_rwlock_destroy(&r->file_reqs[i].rwlock);
+    }
+    delete[] r->file_reqs;
+
+    uv_mutex_destroy(&r->mutex);
+    delete r;
+}
+
 static void MaybeCleanupReq(ExecReq *r) {
     uv_mutex_lock(&r->mutex);
     r->result_count += 1;
@@ -89,16 +109,13 @@ static void MaybeCleanupReq(ExecReq *r) {
 
     if (!done) return;
 
+    r->result_count = 0;
+
     for (int i = 0; i < r->file_count; i += 1) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].complete_async), NULL);
-        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].progress_async), NULL);
-        uv_rwlock_destroy(&r->file_reqs[i].rwlock);
+        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].complete_async), MaybeDestroyReq);
+        uv_close(reinterpret_cast<uv_handle_t*>(&r->file_reqs[i].progress_async), MaybeDestroyReq);
     }
 
-    delete[] r->file_reqs;
-
-    uv_mutex_destroy(&r->mutex);
-    delete r;
 }
 
 static void CompleteAsyncCallback(uv_async_t *handle, int status) {
