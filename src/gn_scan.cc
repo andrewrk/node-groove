@@ -5,10 +5,7 @@
 using namespace v8;
 
 GNScan::GNScan() {};
-GNScan::~GNScan() {
-    groove_replaygainscan_destroy(scan);
-    scan = NULL;
-};
+GNScan::~GNScan() {};
 
 Persistent<Function> GNScan::constructor;
 
@@ -98,6 +95,7 @@ static void MaybeDestroyReq(uv_handle_t *handle) {
     delete[] r->file_reqs;
 
     uv_mutex_destroy(&r->mutex);
+    groove_replaygainscan_destroy(r->scan);
     delete r;
 }
 
