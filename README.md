@@ -3,6 +3,8 @@
 Node.js bindings to [libgroove](https://github.com/superjoe30/libgroove) -
 generic music player backend library.
 
+Live discussion in #libgroove IRC channel on irc.freenode.org.
+
 ## Usage
 
 1. Install libgroove to your system.
