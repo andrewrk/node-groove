@@ -172,7 +172,7 @@ struct CloseReq {
 
 static void CloseAsync(uv_work_t *req) {
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
-    groove_close(r->file);
+    groove_file_close(r->file);
 }
 
 static void CloseAfter(uv_work_t *req) {
@@ -218,7 +218,7 @@ struct OpenReq {
 
 static void OpenAsync(uv_work_t *req) {
     OpenReq *r = reinterpret_cast<OpenReq *>(req->data);
-    r->file = groove_open(**r->filename);
+    r->file = groove_file_open(**r->filename);
 }
 
 static void OpenAfter(uv_work_t *req) {

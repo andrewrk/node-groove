@@ -93,44 +93,34 @@ The string that was passed to `groove.open`
 
 `callback(err)`
 
-### GroovePlayer
+### GroovePlaylist
 
-#### groove.createPlayer(callback)
+#### groove.createPlaylist()
 
-`callback(err, player)`
+A playlist managers keeping an audio buffer full. To send the buffer
+to your speakers, use `playlist.createPlayer()`.
 
-#### player.destroy(callback)
+#### playlist.destroy()
 
-`callback(err)`
+If you created any players on this playlist you must detach them before
+calling this method.
 
-#### player.playlist()
+#### playlist.items()
 
 Returns a read-only array of playlist items.
-Use `player.insert` and `player.remove` to modify.
+Use `playlist.insert` and `playlist.remove` to modify.
 
 `[playlistItem1, playlistItem2, ...]`
 
-#### player.on('nowplaying', handler)
+#### playlist.play()
 
-Fires when the item that is now playing changes. It can be `null`.
+#### playlist.pause()
 
-`handler()`
-
-#### player.on('bufferunderrun', handler)
-
-Fires when a buffer underrun occurs. Ideally you'll never see this.
-
-`handler()`
-
-#### player.play()
-
-#### player.pause()
-
-#### player.seek(playlistItem, position)
+#### playlist.seek(playlistItem, position)
 
 Seek to `playlistItem`, `position` seconds into the song.
 
-#### player.insert(file, gain, nextPlaylistItem)
+#### playlist.insert(file, gain, nextPlaylistItem)
 
 Creates a new playlist item with file and puts it in the playlist before
 `nextPlaylistItem`. If `nextPlaylistItem` is `null`, appends the new
@@ -144,43 +134,42 @@ Returns the newly added playlist item.
 Once you add a file to the playlist, you must not `file.close()` it until
 you first remove it from the playlist.
 
-#### player.remove(playlistItem)
+#### playlist.remove(playlistItem)
 
 Remove `playlistItem` from the playlist.
 
 Note that you are responsible for calling `file.close()` on every file
-that you open with `groove.open`. `player.remove` will not close files.
+that you open with `groove.open`. `playlist.remove` will not close files.
 
-#### player.position()
-
-Returns `{item, pos}` where `item` is the playlist item currently playing
-and `pos` is how many seconds into the song the play head is.
-
-#### player.decodePosition()
+#### playlist.position()
 
 Returns `{item, pos}` where `item` is the playlist item currently being
 decoded and `pos` is how many seconds into the song the decode head is.
 
-#### player.playing()
+Note that typically you are more interested in the position of the play head,
+not the decode head. Example methods which return the play head are
+`player.position()` and `encoder.position()`.
+
+#### playlist.playing()
 
 Returns `true` or `false`.
 
-#### player.clear()
+#### playlist.clear()
 
 Remove all playlist items.
 
-#### player.count()
+#### playlist.count()
 
 How many items are on the playlist.
 
-#### player.volume
+#### playlist.volume
 
-#### player.setVolume(value)
+#### playlist.setVolume(value)
 
 Between 0.0 and 1.0. You probably want to leave this at 1.0, since using
 replaygain will typically lower your volume a significant amount.
 
-#### player.setItemGain(playlistItem, gain)
+#### playlist.setItemGain(playlistItem, gain)
 
 `gain` is a float that affects the volume of the specified playlist item only.
 To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
@@ -188,7 +177,7 @@ To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
 ### GroovePlaylistItem
 
 These are not instantiated directly; instead they are returned from
-`player.playlist()`.
+`playlist.items()`.
 
 #### item.file
 
@@ -200,6 +189,131 @@ Every time you obtain a playlist item from groove, you will get a fresh
 JavaScript object, but it might point to the same underlying libgroove pointer
 as another. The `id` field is a way to check if two playlist items reference
 the same one.
+
+### GroovePlayer
+
+#### groove.getDevices()
+
+Returns an array of device names which are the devices you can send audio
+to.
+
+#### groove.createPlayer()
+
+Creates a GroovePlayer instance which you can then configure by setting
+properties.
+
+#### player.deviceName
+
+Before calling `attach()`, set this to one of the device names returned from
+`groove.getDevices()` or `null` to represent the default device.
+
+#### player.targetAudioFormat
+
+The desired audio format settings with which to open the device.
+`groove.createPlayer()` defaults these to 44100 Hz,
+signed 16-bit int, stereo.
+These are preferences; if a setting cannot be used, a substitute will
+be used instead. In this case, actualAudioFormat will be updated to reflect
+the substituted values.
+
+Properties:
+
+ * `sampleRate`
+ * `channelLayout`
+ * `sampleFormat`
+
+#### player.actualAudioFormat
+
+groove sets this to the actual format you get when you open the device.
+Ideally will be the same as targetAudioFormat but might not be.
+
+Properties:
+
+ * `sampleRate`
+ * `channelLayout`
+ * `sampleFormat`
+
+#### player.deviceBufferSize
+
+how big the device buffer should be, in sample frames.
+must be a power of 2.
+`groove.createPlayer()` defaults this to 1024
+
+#### player.memoryBufferSize
+
+How big the memory buffer should be, in sample frames.
+`groove.createPlayer()` defaults this to 8192
+
+#### player.attach(playlist, callback)
+
+Sends audio to sound device.
+
+`callback(err)`
+
+#### player.detach(callback)
+
+`callback(err)`
+
+#### player.destroy(callback)
+
+If the player is attached, you must detach it before destroying it.
+
+#### player.position()
+
+Returns `{item, pos}` where `item` is the playlist item currently being
+played and `pos` is how many seconds into the song the play head is.
+
+#### player.on('nowplaying', handler)
+
+Fires when the item that is now playing changes. It can be `null`.
+
+`handler()`
+
+#### player.on('bufferunderrun', handler)
+
+Fires when a buffer underrun occurs. Ideally you'll never see this.
+
+`handler()`
+
+### GrooveEncoder
+
+#### groove.createEncoder()
+
+#### encoder.destroy()
+
+#### encoder.bitRate
+
+select encoding quality by choosing a target bit rate
+
+#### encoder.formatShortName
+
+optional - help libgroove guess which format to use.
+`avconv -formats` to get a list of possibilities.
+
+#### encoder.codecShortName
+
+optional - help libgroove guess which codec to use.
+`avconv-codecs` to get a list of possibilities.
+
+#### encoder.filename
+
+optional - provide an example filename to help libgroove guess
+which format/codec to use.
+
+#### encoder.mimeType
+
+optional - provide a mime type string to help libgrooove guess
+which format/codec to use.
+
+#### encoder.attach(playlist, callback)
+
+`callback(err)`
+
+#### encoder.detach(callback)
+
+Encoders must be detached before they are destroyed.
+
+`callback(err)`
 
 ### GrooveReplayGainScan
 
@@ -239,4 +353,3 @@ When the scan is complete.
 `peak` - sample peak in float format of all files scanned
 
 #### scan.on('error', handler)
-
