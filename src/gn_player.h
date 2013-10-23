@@ -22,7 +22,6 @@ class GNPlayer : public node::ObjectWrap {
         GroovePlayer *player;
         EventContext *event_context;
 
-
     private:
         GNPlayer();
         ~GNPlayer();
@@ -32,23 +31,50 @@ class GNPlayer : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> GetId(v8::Local<v8::String> property,
                 const v8::AccessorInfo &info);
-        static v8::Handle<v8::Value> GetVolume(v8::Local<v8::String> property,
+
+        static v8::Handle<v8::Value> GetDeviceName(v8::Local<v8::String> property,
+                const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> SetDeviceName(
+                v8::Local<v8::String> property,
+                v8::Local<v8::Value> value,
                 const v8::AccessorInfo &info);
 
-        static v8::Handle<v8::Value> Destroy(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Playlist(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Play(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Pause(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Seek(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Insert(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Remove(const v8::Arguments& args);
+        static v8::Handle<v8::Value> GetTargetAudioFormat(
+                v8::Local<v8::String> property, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> SetTargetAudioFormat(
+                v8::Local<v8::String> property,
+                v8::Local<v8::Value> value,
+                const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> GetDeviceBufferSize(
+                v8::Local<v8::String> property, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> SetDeviceBufferSize(
+                v8::Local<v8::String> property,
+                v8::Local<v8::Value> value,
+                const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> GetMemoryBufferSize(
+                v8::Local<v8::String> property, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> SetMemoryBufferSize(
+                v8::Local<v8::String> property,
+                v8::Local<v8::Value> value,
+                const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> GetPlaylist(
+                v8::Local<v8::String> property, const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> GetActualAudioFormat(
+                v8::Local<v8::String> property, const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> SetActualAudioFormat(
+                v8::Local<v8::String> property,
+                v8::Local<v8::Value> value,
+                const v8::AccessorInfo &info);
+
+        static v8::Handle<v8::Value> Attach(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Detach(const v8::Arguments& args);
         static v8::Handle<v8::Value> Position(const v8::Arguments& args);
-        static v8::Handle<v8::Value> DecodePosition(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Playing(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Clear(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Count(const v8::Arguments& args);
-        static v8::Handle<v8::Value> SetItemGain(const v8::Arguments& args);
-        static v8::Handle<v8::Value> SetVolume(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Destroy(const v8::Arguments& args);
 };
 
 #endif

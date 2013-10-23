@@ -1,6 +1,7 @@
 #include <node.h>
 #include "gn_file.h"
 #include "gn_player.h"
+#include "gn_playlist.h"
 #include "gn_playlist_item.h"
 #include "gn_scan.h"
 
@@ -18,6 +19,18 @@ Handle<Value> SetLogging(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
+Handle<Value> GetDevices(const Arguments& args) {
+    HandleScope scope;
+
+    Local<Array> deviceList = Array::New();
+    int device_count = groove_device_count();
+    for (int i = 0; i < device_count; i += 1) {
+        const char *name = groove_device_name(i);
+        deviceList->Set(Number::New(i), String::New(name));
+    }
+    return scope.Close(deviceList);
+}
+
 template <typename target_t>
 static void SetProperty(target_t obj, const char* name, double n) {
     obj->Set(String::NewSymbol(name), Number::New(n));
@@ -28,6 +41,7 @@ void Initialize(Handle<Object> exports) {
 
     GNFile::Init();
     GNPlayer::Init();
+    GNPlaylist::Init();
     GNPlaylistItem::Init();
     GNScan::Init();
 
@@ -40,12 +54,14 @@ void Initialize(Handle<Object> exports) {
     SetProperty(exports, "TAG_DONT_OVERWRITE", GROOVE_TAG_DONT_OVERWRITE);
     SetProperty(exports, "TAG_APPEND", GROOVE_TAG_APPEND);
 
-    SetProperty(exports, "_PLAYER_EVENT_NOWPLAYING", GROOVE_PLAYER_EVENT_NOWPLAYING);
-    SetProperty(exports, "_PLAYER_EVENT_BUFFERUNDERRUN", GROOVE_PLAYER_EVENT_BUFFERUNDERRUN);
+    SetProperty(exports, "_EVENT_NOWPLAYING", GROOVE_EVENT_NOWPLAYING);
+    SetProperty(exports, "_EVENT_BUFFERUNDERRUN", GROOVE_EVENT_BUFFERUNDERRUN);
 
     SetMethod(exports, "setLogging", SetLogging);
+    SetMethod(exports, "getDevices", GetDevices);
     SetMethod(exports, "open", GNFile::Open);
     SetMethod(exports, "createPlayer", GNPlayer::Create);
+    SetMethod(exports, "createPlaylist", GNPlaylist::Create);
     SetMethod(exports, "createReplayGainScan", GNScan::Create);
 }
 

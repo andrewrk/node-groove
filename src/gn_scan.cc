@@ -223,7 +223,7 @@ Handle<Value> GNScan::Create(const Arguments& args) {
 
     Local<Array> file_list = Local<Array>::Cast(args[0]);
 
-    GrooveReplayGainScan *scan = groove_create_replaygainscan();
+    GrooveReplayGainScan *scan = groove_replaygainscan_create();
     scan->progress_interval = args[1]->NumberValue();
     if (!scan) {
         ThrowException(Exception::Error(String::New("unable to create replaygainscan")));
