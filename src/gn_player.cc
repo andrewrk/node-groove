@@ -241,8 +241,14 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
         return scope.Close(Undefined());
     }
 
-    Local<Object> instance = args[0]->ToObject();
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(instance);
+    Local<Object> instance = args.This();
+    Local<Value> targetAudioFormatValue = instance->Get(String::NewSymbol("targetAudioFormat"));
+    if (!targetAudioFormatValue->IsObject()) {
+        ThrowException(Exception::TypeError(String::New("Expected targetAudioFormat to be an object")));
+        return scope.Close(Undefined());
+    }
+
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args[0]->ToObject());
 
     AttachReq *request = new AttachReq;
 
@@ -262,18 +268,19 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
     } else {
         request->device_name = new String::Utf8Value(deviceName->ToString());
     }
-    Local<Object> targetAudioFormat = instance->Get(String::NewSymbol("targetAudioFormat"))->ToObject();
-    double sample_rate = targetAudioFormat->Get(String::NewSymbol("sampleRate"))->NumberValue();
+    Local<Object> targetAudioFormat = targetAudioFormatValue->ToObject();
+    Local<Value> sampleRate = targetAudioFormat->Get(String::NewSymbol("sampleRate"));
+    double sample_rate = sampleRate->NumberValue();
     double channel_layout = targetAudioFormat->Get(String::NewSymbol("channelLayout"))->NumberValue();
     double sample_fmt = targetAudioFormat->Get(String::NewSymbol("sampleFormat"))->NumberValue();
     player->target_audio_format.sample_rate = (int)sample_rate;
     player->target_audio_format.channel_layout = (int)channel_layout;
     player->target_audio_format.sample_fmt = (enum GrooveSampleFormat)(int)sample_fmt;
 
-    double device_buffer_size = targetAudioFormat->Get(String::NewSymbol("deviceBufferSize"))->NumberValue();
+    double device_buffer_size = instance->Get(String::NewSymbol("deviceBufferSize"))->NumberValue();
     player->device_buffer_size = (int)device_buffer_size;
 
-    double memory_buffer_size = targetAudioFormat->Get(String::NewSymbol("memoryBufferSize"))->NumberValue();
+    double memory_buffer_size = instance->Get(String::NewSymbol("memoryBufferSize"))->NumberValue();
     player->memory_buffer_size = (int)memory_buffer_size;
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
@@ -337,6 +344,7 @@ Handle<Value> GNPlayer::Detach(const Arguments& args) {
     request->req.data = request;
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
     request->player = gn_player->player;
+    request->event_context = gn_player->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);

@@ -6,20 +6,22 @@ var Batch = require('batch'); // npm install batch
 
 if (process.argv.length < 3) usage();
 
-groove.createPlayer(function(err, player) {
-  assert.ifError(err);
+var playlist = groove.createPlaylist();
+var player = groove.createPlayer();
 
-  // detect end of playlist and quit
-  player.on('nowplaying', function() {
-    var current = player.position();
-    if (!current.item) {
-      cleanup(player);
-      return;
-    }
-    var artist = current.item.file.getMetadata('artist');
-    var title = current.item.file.getMetadata('title');
-    console.log("Now playing:", artist, "-", title);
-  });
+player.on('nowplaying', function() {
+  var current = player.position();
+  if (!current.item) {
+    cleanup();
+    return;
+  }
+  var artist = current.item.file.getMetadata('artist');
+  var title = current.item.file.getMetadata('title');
+  console.log("Now playing:", artist, "-", title);
+});
+
+player.attach(playlist, function(err) {
+  assert.ifError(err);
 
   var batch = new Batch();
   for (var i = 2; i < process.argv.length; i += 1) {
@@ -28,7 +30,7 @@ groove.createPlayer(function(err, player) {
   batch.end(function(err, files) {
     files.forEach(function(file) {
       if (file) {
-        player.insert(file, null);
+        playlist.insert(file, null);
       }
     });
   });
@@ -39,17 +41,17 @@ groove.createPlayer(function(err, player) {
   }
 });
 
-function cleanup(player) {
+function cleanup() {
   var batch = new Batch();
-  var files = player.playlist().map(function(item) { return item.file; });
-  player.clear();
+  var files = playlist.items().map(function(item) { return item.file; });
+  playlist.clear();
   files.forEach(function(file) {
     batch.push(function(cb) {
       file.close(cb);
     });
   });
   batch.end(function(err) {
-    player.destroy(function(err) {
+    player.detach(function(err) {
       if (err) console.error(err.stack);
     });
   });

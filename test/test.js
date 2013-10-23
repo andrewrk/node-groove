@@ -72,9 +72,10 @@ test("create empty playlist", function (t) {
 });
 
 test("create empty player", function (t) {
-    t.plan(1);
+    t.plan(2);
     var player = groove.createPlayer();
     t.ok(player.id);
+    t.equal(player.targetAudioFormat.sampleRate, 44100);
 });
 
 test("playlist item ids", function(t) {
@@ -95,6 +96,18 @@ test("playlist item ids", function(t) {
         t.equal(items1[0].id, items2[0].id);
         t.equal(items1[0].id, returned1.id);
         t.equal(items2[1].id, returned2.id);
+    });
+});
+
+test("attaching and detaching player", function(t) {
+    t.plan(2);
+    var playlist = groove.createPlaylist();
+    var player = groove.createPlayer();
+    player.attach(playlist, function(err) {
+        t.ok(!err, "attach");
+        player.detach(function(err) {
+            t.ok(!err, "detach");
+        });
     });
 });
 
