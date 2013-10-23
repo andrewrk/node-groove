@@ -74,7 +74,6 @@ class GNPlayer : public node::ObjectWrap {
         static v8::Handle<v8::Value> Attach(const v8::Arguments& args);
         static v8::Handle<v8::Value> Detach(const v8::Arguments& args);
         static v8::Handle<v8::Value> Position(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Destroy(const v8::Arguments& args);
 };
 
 #endif

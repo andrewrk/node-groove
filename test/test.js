@@ -64,40 +64,37 @@ test("update metadata", function(t) {
     }
 });
 
-test("create and destroy empty player", function (t) {
-    t.plan(4);
-    groove.createPlayer(function(err, player) {
-        t.ok(player.id);
-        t.ok(!err, "creating player");
-        t.equivalent(player.playlist(), [], "empty playlist");
-        player.destroy(function(err) {
-            t.ok(!err, "destroying player");
-        });
-    });
+test("create empty playlist", function (t) {
+    t.plan(2);
+    var playlist = groove.createPlaylist();
+    t.ok(playlist.id);
+    t.equivalent(playlist.items(), [], "empty playlist");
+});
+
+test("create empty player", function (t) {
+    t.plan(1);
+    var player = groove.createPlayer();
+    t.ok(player.id);
 });
 
 test("playlist item ids", function(t) {
-    t.plan(9);
-    groove.createPlayer(function(err, player) {
-        t.ok(!err, "creating player");
-        player.pause();
-        t.equal(player.playing(), false);
-        groove.open(testOgg, function(err, file) {
-            t.ok(!err, "opening file");
-            t.ok(player.decodePosition);
-            t.equal(player.volume, 1.0);
-            player.setVolume(1.0);
-            var returned1 = player.insert(file, null);
-            var returned2 = player.insert(file, null);
-            var items1 = player.playlist();
-            var items2 = player.playlist();
-            t.equal(items1[0].id, items2[0].id);
-            t.equal(items1[0].id, returned1.id);
-            t.equal(items2[1].id, returned2.id);
-            player.destroy(function(err) {
-                t.ok(!err, "destroying player");
-            });
-        });
+    t.plan(8);
+    var playlist = groove.createPlaylist();
+    t.ok(playlist);
+    playlist.pause();
+    t.equal(playlist.playing(), false);
+    groove.open(testOgg, function(err, file) {
+        t.ok(!err, "opening file");
+        t.ok(playlist.position);
+        t.equal(playlist.volume, 1.0);
+        playlist.setVolume(1.0);
+        var returned1 = playlist.insert(file, null);
+        var returned2 = playlist.insert(file, null);
+        var items1 = playlist.items();
+        var items2 = playlist.items();
+        t.equal(items1[0].id, items2[0].id);
+        t.equal(items1[0].id, returned1.id);
+        t.equal(items2[1].id, returned2.id);
     });
 });
 

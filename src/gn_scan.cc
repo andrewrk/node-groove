@@ -217,7 +217,6 @@ static void ExecAfter(uv_work_t *req) {
     }
 }
 
-
 Handle<Value> GNScan::Create(const Arguments& args) {
     HandleScope scope;
 
