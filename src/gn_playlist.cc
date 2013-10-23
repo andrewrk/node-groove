@@ -8,6 +8,7 @@ using namespace v8;
 GNPlaylist::GNPlaylist() {
 };
 GNPlaylist::~GNPlaylist() {
+    groove_playlist_destroy(playlist);
 };
 
 Persistent<Function> GNPlaylist::constructor;
@@ -32,7 +33,6 @@ void GNPlaylist::Init() {
     AddGetter(tpl, "id", GetId);
     AddGetter(tpl, "volume", GetVolume);
     // Methods
-    AddMethod(tpl, "destroy", Destroy);
     AddMethod(tpl, "play", Play);
     AddMethod(tpl, "items", Playlist);
     AddMethod(tpl, "pause", Pause);
@@ -213,14 +213,4 @@ Handle<Value> GNPlaylist::Create(const Arguments& args) {
 
     GroovePlaylist *playlist = groove_playlist_create();
     return scope.Close(GNPlaylist::NewInstance(playlist));
-}
-
-Handle<Value> GNPlaylist::Destroy(const Arguments& args) {
-    HandleScope scope;
-
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
-    groove_playlist_destroy(gn_playlist->playlist);
-    gn_playlist->playlist = NULL;
-
-    return scope.Close(Undefined());
 }

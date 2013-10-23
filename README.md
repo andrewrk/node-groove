@@ -98,11 +98,6 @@ The string that was passed to `groove.open`
 A playlist managers keeping an audio buffer full. To send the buffer
 to your speakers, use `playlist.createPlayer()`.
 
-#### playlist.destroy()
-
-If you created any players on this playlist you must detach them before
-calling this method.
-
 #### playlist.items()
 
 Returns a read-only array of playlist items.
@@ -252,10 +247,6 @@ Sends audio to sound device.
 
 `callback(err)`
 
-#### player.destroy(callback)
-
-If the player is attached, you must detach it before destroying it.
-
 #### player.position()
 
 Returns `{item, pos}` where `item` is the playlist item currently being
@@ -276,8 +267,6 @@ Fires when a buffer underrun occurs. Ideally you'll never see this.
 ### GrooveEncoder
 
 #### groove.createEncoder()
-
-#### encoder.destroy()
 
 #### encoder.bitRate
 
@@ -308,8 +297,6 @@ which format/codec to use.
 `callback(err)`
 
 #### encoder.detach(callback)
-
-Encoders must be detached before they are destroyed.
 
 `callback(err)`
 
