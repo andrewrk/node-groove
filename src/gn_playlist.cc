@@ -8,6 +8,9 @@ using namespace v8;
 GNPlaylist::GNPlaylist() {
 };
 GNPlaylist::~GNPlaylist() {
+    // TODO move this somewhere else because we create multiple objects with
+    // the same playlist pointer in player.playlist or encoder.playlist
+    // for example
     groove_playlist_destroy(playlist);
 };
 

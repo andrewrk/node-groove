@@ -1,30 +1,21 @@
-#ifndef GN_PLAYER_H
-#define GN_PLAYER_H
+#ifndef GN_ENCODER_H
+#define GN_ENCODER_H
 
 #include <node.h>
 
 #include "groove.h"
 
-struct EventContext {
-    uv_thread_t event_thread;
-    uv_async_t event_async;
-    GroovePlayer *player;
-    v8::Persistent<v8::Function> event_cb;
-};
-
-class GNPlayer : public node::ObjectWrap {
+class GNEncoder : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GroovePlayer *player);
+        static v8::Handle<v8::Value> NewInstance(GrooveEncoder *encoder);
 
         static v8::Handle<v8::Value> Create(const v8::Arguments& args);
 
-        GroovePlayer *player;
-        EventContext *event_context;
-
+        GrooveEncoder *encoder;
     private:
-        GNPlayer();
-        ~GNPlayer();
+        GNEncoder();
+        ~GNEncoder();
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
@@ -37,7 +28,6 @@ class GNPlayer : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> Attach(const v8::Arguments& args);
         static v8::Handle<v8::Value> Detach(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Position(const v8::Arguments& args);
 };
 
 #endif
