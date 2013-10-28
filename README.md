@@ -302,6 +302,16 @@ which format/codec to use.
 
 `callback(err)`
 
+#### encoder.getBuffer()
+
+Returns `null` if no buffer available, or an object with these properties:
+
+ * `buffer` - a node `Buffer` instance which is the encoded data for this chunk
+   this can be `null` in which case this buffer is actually the end of
+   playlist sentinel.
+ * `item` - the GroovePlaylistItem of which this buffer is encoded data for
+ * `pos` - position in seconds that this buffer represents in into the item
+
 ### GrooveReplayGainScan
 
 #### groove.createReplayGainScan(fileList, progressInterval)

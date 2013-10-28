@@ -28,6 +28,7 @@ class GNEncoder : public node::ObjectWrap {
 
         static v8::Handle<v8::Value> Attach(const v8::Arguments& args);
         static v8::Handle<v8::Value> Detach(const v8::Arguments& args);
+        static v8::Handle<v8::Value> GetBuffer(const v8::Arguments& args);
 };
 
 #endif

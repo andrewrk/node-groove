@@ -1,4 +1,5 @@
 #include <node.h>
+#include <node_buffer.h>
 #include "gn_encoder.h"
 #include "gn_playlist.h"
 #include "gn_playlist_item.h"
@@ -34,6 +35,7 @@ void GNEncoder::Init() {
     // Methods
     AddMethod(tpl, "attach", Attach);
     AddMethod(tpl, "detach", Detach);
+    AddMethod(tpl, "getBuffer", GetBuffer);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -161,7 +163,6 @@ Handle<Value> GNEncoder::Create(const Arguments& args) {
 
     GrooveEncoder *encoder = groove_encoder_create();
     Handle<Object> instance = NewInstance(encoder)->ToObject();
-    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
 
     // set properties on the instance with default values from
     // GrooveEncoder struct
@@ -314,3 +315,38 @@ Handle<Value> GNEncoder::Detach(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
+static void buffer_free(char *data, void *hint) {
+    GrooveBuffer *buffer = reinterpret_cast<GrooveBuffer*>(hint);
+    groove_buffer_unref(buffer);
+}
+
+Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
+    HandleScope scope;
+    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
+    GrooveEncoder *encoder = gn_encoder->encoder;
+
+    GrooveBuffer *buffer;
+    switch (groove_encoder_get_buffer(encoder, &buffer, 0)) {
+        case GROOVE_BUFFER_YES: {
+            Local<Object> object = Object::New();
+
+            Handle<Object> bufferObject = node::Buffer::New(
+                    reinterpret_cast<char*>(buffer->data[0]), buffer->size,
+                    buffer_free, buffer)->handle_;
+            object->Set(String::NewSymbol("buffer"), bufferObject);
+
+            object->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(buffer->item));
+            object->Set(String::NewSymbol("pos"), Number::New(buffer->pos));
+            return scope.Close(object);
+        }
+        case GROOVE_BUFFER_END: {
+            Local<Object> object = Object::New();
+            object->Set(String::NewSymbol("buffer"), Null());
+            object->Set(String::NewSymbol("item"), Null());
+            object->Set(String::NewSymbol("pos"), Null());
+            return scope.Close(object);
+        }
+        default:
+            return scope.Close(Null());
+    }
+}
