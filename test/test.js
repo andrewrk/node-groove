@@ -129,3 +129,17 @@ test("replaygain scan", function(t) {
     });
   });
 });
+
+test("create, attach, detach encoder", function(t) {
+    t.plan(2);
+    var playlist = groove.createPlaylist();
+    var encoder = groove.createEncoder();
+    encoder.formatShortName = "ogg";
+    encoder.codecShortName = "vorbis";
+    encoder.attach(playlist, function(err) {
+        t.ok(!err, "attach");
+        encoder.detach(function(err) {
+            t.ok(!err, "detach");
+        });
+    });
+});

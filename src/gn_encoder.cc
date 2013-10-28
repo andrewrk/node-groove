@@ -156,11 +156,6 @@ static void AttachAfter(uv_work_t *req) {
 Handle<Value> GNEncoder::Create(const Arguments& args) {
     HandleScope scope;
 
-    if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
-    }
-
     GrooveEncoder *encoder = groove_encoder_create();
     Handle<Object> instance = NewInstance(encoder)->ToObject();
 
@@ -303,11 +298,18 @@ Handle<Value> GNEncoder::Detach(const Arguments& args) {
         return scope.Close(Undefined());
     }
 
+    GrooveEncoder *encoder = gn_encoder->encoder;
+
+    if (!encoder->playlist) {
+        ThrowException(Exception::Error(String::New("detach: not attached")));
+        return scope.Close(Undefined());
+    }
+
     DetachReq *request = new DetachReq;
 
     request->req.data = request;
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
-    request->encoder = gn_encoder->encoder;
+    request->encoder = encoder;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
