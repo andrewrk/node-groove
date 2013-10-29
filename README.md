@@ -234,9 +234,9 @@ how big the device buffer should be, in sample frames.
 must be a power of 2.
 `groove.createPlayer()` defaults this to 1024
 
-#### player.memoryBufferSize
+#### player.sinkBufferSize
 
-How big the memory buffer should be, in sample frames.
+How big the sink buffer should be, in sample frames.
 `groove.createPlayer()` defaults this to 8192
 
 #### player.attach(playlist, callback)

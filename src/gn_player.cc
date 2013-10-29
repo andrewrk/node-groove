@@ -221,8 +221,8 @@ Handle<Value> GNPlayer::Create(const Arguments& args) {
     instance->Set(String::NewSymbol("targetAudioFormat"), targetAudioFormat);
     instance->Set(String::NewSymbol("deviceBufferSize"),
             Number::New(player->device_buffer_size));
-    instance->Set(String::NewSymbol("memoryBufferSize"),
-            Number::New(player->memory_buffer_size));
+    instance->Set(String::NewSymbol("sinkBufferSize"),
+            Number::New(player->sink_buffer_size));
 
     return scope.Close(instance);
 }
@@ -280,8 +280,8 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
     double device_buffer_size = instance->Get(String::NewSymbol("deviceBufferSize"))->NumberValue();
     player->device_buffer_size = (int)device_buffer_size;
 
-    double memory_buffer_size = instance->Get(String::NewSymbol("memoryBufferSize"))->NumberValue();
-    player->memory_buffer_size = (int)memory_buffer_size;
+    double sink_buffer_size = instance->Get(String::NewSymbol("sinkBufferSize"))->NumberValue();
+    player->sink_buffer_size = (int)sink_buffer_size;
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
