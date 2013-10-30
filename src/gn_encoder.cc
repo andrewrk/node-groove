@@ -337,7 +337,11 @@ Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
                     buffer_free, buffer)->handle_;
             object->Set(String::NewSymbol("buffer"), bufferObject);
 
-            object->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(buffer->item));
+            if (buffer->item) {
+                object->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(buffer->item));
+            } else {
+                object->Set(String::NewSymbol("item"), Null());
+            }
             object->Set(String::NewSymbol("pos"), Number::New(buffer->pos));
             return scope.Close(object);
         }
