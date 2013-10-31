@@ -113,7 +113,7 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
     EventContext *context = reinterpret_cast<EventContext *>(handle->data);
 
     // flush events
-    GrooveEvent event;
+    GroovePlayerEvent event;
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
