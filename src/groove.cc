@@ -1,4 +1,5 @@
 #include <node.h>
+#include <cstdlib>
 #include "gn_file.h"
 #include "gn_player.h"
 #include "gn_playlist.h"
@@ -39,6 +40,7 @@ static void SetProperty(target_t obj, const char* name, double n) {
 
 void Initialize(Handle<Object> exports) {
     groove_init();
+    atexit(groove_finish);
 
     GNFile::Init();
     GNPlayer::Init();
