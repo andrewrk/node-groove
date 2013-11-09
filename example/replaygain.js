@@ -1,35 +1,63 @@
 /* replaygain scanner */
 
 var groove = require('../');
+var assert = require('assert');
 var Batch = require('batch'); // npm install batch
 
+if (process.argv.length < 3) usage();
 
-var filenames = process.argv.slice(2);
-if (filenames.length === 0) usage();
+var playlist = groove.createPlaylist();
+var detector = groove.createLoudnessDetector();
 
-var batch = new Batch();
-
-filenames.forEach(queueOpenFn);
-batch.end(function(err, files) {
-  if (err) {
-    console.error("Error opening file:", err.stack);
-    return;
+detector.on('info', function() {
+  var info = detector.getInfo();
+  if (info.item) {
+    console.log(info.item.file.filename, "gain:",
+      groove.loudnessToReplayGain(info.loudness), "peak:", info.peak,
+      "duration:", info.duration);
+  } else {
+    console.log("all files gain:",
+      groove.loudnessToReplayGain(info.loudness), "peak:", info.peak,
+      "duration:", info.duration);
+    cleanup();
   }
-  var scan = groove.createReplayGainScan(files, 10);
-  scan.on('error', function(err) {
-    console.error("Error scanning:", err.stack);
-  });
-  scan.on('end', function(gain, peak) {
-    console.log("all files gain:", gain, "all files peak:", peak);
-  });
-  scan.on('file', function(file, gain, peak) {
-    console.log(file.filename, "gain:", gain, "peak:", peak);
+});
+
+detector.attach(playlist, function(err) {
+  assert.ifError(err);
+
+  var batch = new Batch();
+  for (var i = 2; i < process.argv.length; i += 1) {
+    batch.push(openFileFn(process.argv[i]));
+  }
+  batch.end(function(err, files) {
+    files.forEach(function(file) {
+      if (file) {
+        playlist.insert(file, null);
+      }
+    });
   });
 });
 
-function queueOpenFn(filename) {
-  batch.push(function(cb) {
+function openFileFn(filename) {
+  return function(cb) {
     groove.open(filename, cb);
+  };
+}
+
+function cleanup() {
+  var batch = new Batch();
+  var files = playlist.items().map(function(item) { return item.file; });
+  playlist.clear();
+  files.forEach(function(file) {
+    batch.push(function(cb) {
+      file.close(cb);
+    });
+  });
+  batch.end(function(err) {
+    detector.detach(function(err) {
+      if (err) console.error(err.stack);
+    });
   });
 }
 

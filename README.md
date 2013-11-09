@@ -43,6 +43,15 @@ groove.open("danse-macabre.ogg", function(err, file) {
  * `groove.LOG_WARNING`
  * `groove.LOG_INFO`
 
+#### groove.loudnessToReplayGain(loudness)
+
+Converts a loudness value which is in LUFS to the ReplayGain-suggested dB
+adjustment.
+
+#### groove.dBToFloat(dB)
+
+Converts dB format volume adjustment to a floating point gain format.
+
 ### GrooveFile
 
 #### groove.open(filename, callback)
@@ -312,41 +321,55 @@ Returns `null` if no buffer available, or an object with these properties:
  * `item` - the GroovePlaylistItem of which this buffer is encoded data for
  * `pos` - position in seconds that this buffer represents in into the item
 
-### GrooveReplayGainScan
+#### encoder.on('buffer', handler)
 
-#### groove.createReplayGainScan(fileList, progressInterval)
+`handler()`
 
-returns a GrooveReplayGainScan
+Emitted when there is a buffer available to get. You still need to get the
+buffer with `getBuffer()`.
 
-`fileList` is an array of GrooveFiles
-`progressInterval` is number of seconds to decode before 'progress' is emitted.
+#### encoder.position()
 
-#### scan.abort()
+Returns `{item, pos}` where `item` is the playlist item currently being
+encoded and `pos` is how many seconds into the song the encode head is.
 
-Ends a scan early.
+### GrooveLoudnessDetector
 
-#### scan.on('progress', handler)
+#### groove.createLoudnessDetector()
 
-`handler(file, progress)`
+returns a GrooveLoudnessDetector
 
-`file` - the GrooveFile that is being scanned
-`progress` - float from 0 to 1 how much done it is
+#### detector.infoQueueSize
 
-#### scan.on('file', handler)
+Set this to determine how far ahead into the playlist to look.
 
-`handler(file, gain, peak)`
+#### detector.attach(playlist, callback)
 
-`file` - the GrooveFile that was scanned
-`gain` - suggested gain adjustment in dB of the file
-`peak` - sample peak in float format of the file
+`callback(err)`
 
-#### scan.on('end', handler)
+#### detector.detach(callback)
 
-When the scan is complete.
+`callback(err)`
 
-`handler(gain, peak)`
+#### detector.getInfo()
 
-`gain` - suggested gain adjustment in dB of all files scanned
-`peak` - sample peak in float format of all files scanned
+Returns `null` if no buffer available, or an object with these properties:
 
-#### scan.on('error', handler)
+ * `loudness` - loudness in LUFS
+ * `peak` - sample peak in float format of the file
+ * `duration` - duration in seconds of the track
+ * `item` - the GroovePlaylistItem that this applies to, or `null` if it applies
+   to the entire album.
+
+#### detector.position()
+
+Returns `{item, pos}` where `item` is the playlist item currently being
+detected and `pos` is how many seconds into the song the detect head is.
+
+#### detector.on('info', handler)
+
+`handler()`
+
+Emitted when there is info available to get. You still need to get the info
+with `getInfo()`.
+

@@ -5,19 +5,20 @@
 
 #include "groove.h"
 
-struct EventContext {
-    uv_thread_t event_thread;
-    uv_async_t event_async;
-    GroovePlayer *player;
-    v8::Persistent<v8::Function> event_cb;
-};
-
 class GNPlayer : public node::ObjectWrap {
     public:
         static void Init();
         static v8::Handle<v8::Value> NewInstance(GroovePlayer *player);
 
         static v8::Handle<v8::Value> Create(const v8::Arguments& args);
+
+        struct EventContext {
+            uv_thread_t event_thread;
+            uv_async_t event_async;
+            GroovePlayer *player;
+            v8::Persistent<v8::Function> event_cb;
+        };
+
 
         GroovePlayer *player;
         EventContext *event_context;

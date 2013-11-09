@@ -14,11 +14,6 @@ GNEncoder::~GNEncoder() {
 Persistent<Function> GNEncoder::constructor;
 
 template <typename target_t, typename func_t>
-static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol(name), fn);
-}
-
-template <typename target_t, typename func_t>
 static void AddMethod(target_t tpl, const char* name, func_t fn) {
     tpl->PrototypeTemplate()->Set(String::NewSymbol(name),
             FunctionTemplate::New(fn)->GetFunction());
@@ -28,14 +23,12 @@ void GNEncoder::Init() {
     // Prepare constructor template
     Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("GrooveEncoder"));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // Fields
-    AddGetter(tpl, "id", GetId);
-    AddGetter(tpl, "playlist", GetPlaylist);
+    tpl->InstanceTemplate()->SetInternalFieldCount(2);
     // Methods
     AddMethod(tpl, "attach", Attach);
     AddMethod(tpl, "detach", Detach);
     AddMethod(tpl, "getBuffer", GetBuffer);
+    AddMethod(tpl, "position", Position);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -60,27 +53,6 @@ Handle<Value> GNEncoder::NewInstance(GrooveEncoder *encoder) {
     return scope.Close(instance);
 }
 
-Handle<Value> GNEncoder::GetId(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
-    char buf[64];
-    snprintf(buf, sizeof(buf), "%p", gn_encoder->encoder);
-    return scope.Close(String::New(buf));
-}
-
-Handle<Value> GNEncoder::GetPlaylist(Local<String> property,
-        const AccessorInfo &info)
-{
-    HandleScope scope;
-    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
-    GroovePlaylist *playlist = gn_encoder->encoder->playlist;
-    if (playlist) {
-        return scope.Close(GNPlaylist::NewInstance(playlist));
-    } else {
-        return scope.Close(Null());
-    }
-}
-
 struct AttachReq {
     uv_work_t req;
     Persistent<Function> callback;
@@ -92,7 +64,33 @@ struct AttachReq {
     String::Utf8Value *codec_short_name;
     String::Utf8Value *filename;
     String::Utf8Value *mime_type;
+    GNEncoder::EventContext *event_context;
 };
+
+static void EventAsyncCb(uv_async_t *handle, int status) {
+    HandleScope scope;
+
+    GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
+
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    argv[0] = Undefined();
+
+    TryCatch try_catch;
+    context->event_cb->Call(Context::GetCurrent()->Global(), argc, argv);
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
+}
+
+static void EventThreadEntry(void *arg) {
+    GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(arg);
+    while (groove_encoder_buffer_peek(context->encoder, 1) > 0) {
+        // TODO this should wait on some condition instead of spinning
+        uv_async_send(&context->event_async);
+    }
+}
 
 static void AttachAsync(uv_work_t *req) {
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
@@ -119,6 +117,13 @@ static void AttachAsync(uv_work_t *req) {
         delete r->mime_type;
         r->mime_type = NULL;
     }
+
+    GNEncoder::EventContext *context = r->event_context;
+
+    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
+    context->event_async.data = context;
+
+    uv_thread_create(&context->event_thread, EventThreadEntry, context);
 }
 
 static void AttachAfter(uv_work_t *req) {
@@ -156,8 +161,18 @@ static void AttachAfter(uv_work_t *req) {
 Handle<Value> GNEncoder::Create(const Arguments& args) {
     HandleScope scope;
 
+    if (args.Length() < 1 || !args[0]->IsFunction()) {
+        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
+        return scope.Close(Undefined());
+    }
+
     GrooveEncoder *encoder = groove_encoder_create();
     Handle<Object> instance = NewInstance(encoder)->ToObject();
+    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
+    EventContext *context = new EventContext;
+    gn_encoder->event_context = context;
+    context->event_cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    context->encoder = encoder;
 
     // set properties on the instance with default values from
     // GrooveEncoder struct
@@ -209,6 +224,7 @@ Handle<Value> GNEncoder::Attach(const Arguments& args) {
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
     request->instance = Persistent<Object>::New(args.This());
     request->playlist = gn_playlist->playlist;
+    request->event_context = gn_encoder->event_context;
     GrooveEncoder *encoder = gn_encoder->encoder;
     request->encoder = encoder;
 
@@ -261,11 +277,20 @@ struct DetachReq {
     GrooveEncoder *encoder;
     Persistent<Function> callback;
     int errcode;
+    GNEncoder::EventContext *event_context;
 };
+
+static void DetachAsyncFree(uv_handle_t *handle) {
+    GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
+    delete context;
+}
 
 static void DetachAsync(uv_work_t *req) {
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
     r->errcode = groove_encoder_detach(r->encoder);
+
+    uv_thread_join(&r->event_context->event_thread);
+    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
 }
 
 static void DetachAfter(uv_work_t *req) {
@@ -310,6 +335,7 @@ Handle<Value> GNEncoder::Detach(const Arguments& args) {
     request->req.data = request;
     request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
     request->encoder = encoder;
+    request->event_context = gn_encoder->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
@@ -328,7 +354,7 @@ Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
     GrooveEncoder *encoder = gn_encoder->encoder;
 
     GrooveBuffer *buffer;
-    switch (groove_encoder_get_buffer(encoder, &buffer, 0)) {
+    switch (groove_encoder_buffer_get(encoder, &buffer, 0)) {
         case GROOVE_BUFFER_YES: {
             Local<Object> object = Object::New();
 
@@ -355,4 +381,24 @@ Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
         default:
             return scope.Close(Null());
     }
+}
+
+Handle<Value> GNEncoder::Position(const Arguments& args) {
+    HandleScope scope;
+
+    GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
+    GrooveEncoder *encoder = gn_encoder->encoder;
+
+    GroovePlaylistItem *item;
+    double pos;
+    groove_encoder_position(encoder, &item, &pos);
+
+    Local<Object> obj = Object::New();
+    obj->Set(String::NewSymbol("pos"), Number::New(pos));
+    if (item) {
+        obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+    } else {
+        obj->Set(String::NewSymbol("item"), Null());
+    }
+    return scope.Close(obj);
 }

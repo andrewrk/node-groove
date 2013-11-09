@@ -4,7 +4,7 @@
 #include "gn_player.h"
 #include "gn_playlist.h"
 #include "gn_playlist_item.h"
-#include "gn_scan.h"
+#include "gn_loudness_detector.h"
 #include "gn_encoder.h"
 
 using namespace v8;
@@ -46,7 +46,7 @@ void Initialize(Handle<Object> exports) {
     GNPlayer::Init();
     GNPlaylist::Init();
     GNPlaylistItem::Init();
-    GNScan::Init();
+    GNLoudnessDetector::Init();
     GNEncoder::Init();
 
     SetProperty(exports, "LOG_QUIET", GROOVE_LOG_QUIET);
@@ -66,7 +66,7 @@ void Initialize(Handle<Object> exports) {
     SetMethod(exports, "open", GNFile::Open);
     SetMethod(exports, "createPlayer", GNPlayer::Create);
     SetMethod(exports, "createPlaylist", GNPlaylist::Create);
-    SetMethod(exports, "createReplayGainScan", GNScan::Create);
+    SetMethod(exports, "createLoudnessDetector", GNLoudnessDetector::Create);
     SetMethod(exports, "createEncoder", GNEncoder::Create);
 }
 

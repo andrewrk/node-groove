@@ -104,13 +104,13 @@ struct AttachReq {
     int errcode;
     Persistent<Object> instance;
     String::Utf8Value *device_name;
-    EventContext *event_context;
+    GNPlayer::EventContext *event_context;
 };
 
 static void EventAsyncCb(uv_async_t *handle, int status) {
     HandleScope scope;
 
-    EventContext *context = reinterpret_cast<EventContext *>(handle->data);
+    GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
 
     // flush events
     GroovePlayerEvent event;
@@ -130,8 +130,9 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
 }
 
 static void EventThreadEntry(void *arg) {
-    EventContext *context = reinterpret_cast<EventContext *>(arg);
+    GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(arg);
     while (groove_player_event_peek(context->player, 1) > 0) {
+        // TODO this should wait on some condition instead of spinning
         uv_async_send(&context->event_async);
     }
 }
@@ -150,7 +151,7 @@ static void AttachAsync(uv_work_t *req) {
         r->device_name = NULL;
     }
 
-    EventContext *context = r->event_context;
+    GNPlayer::EventContext *context = r->event_context;
 
     uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
     context->event_async.data = context;
@@ -294,11 +295,11 @@ struct DetachReq {
     GroovePlayer *player;
     Persistent<Function> callback;
     int errcode;
-    EventContext *event_context;
+    GNPlayer::EventContext *event_context;
 };
 
 static void DetachAsyncFree(uv_handle_t *handle) {
-    EventContext *context = reinterpret_cast<EventContext *>(handle->data);
+    GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
     delete context;
 }
 
