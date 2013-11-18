@@ -343,6 +343,16 @@ returns a GrooveLoudnessDetector
 
 Set this to determine how far ahead into the playlist to look.
 
+#### detector.sinkBufferSize
+
+How big the sink buffer should be, in sample frames.
+`groove.createLoudnessDetector()` defaults this to 8192
+
+#### detector.disableAlbum
+
+Set to `true` to only compute track loudness. This is faster and requires less
+memory than computing both.
+
 #### detector.attach(playlist, callback)
 
 `callback(err)`
@@ -353,7 +363,7 @@ Set this to determine how far ahead into the playlist to look.
 
 #### detector.getInfo()
 
-Returns `null` if no buffer available, or an object with these properties:
+Returns `null` if no info available, or an object with these properties:
 
  * `loudness` - loudness in LUFS
  * `peak` - sample peak in float format of the file

@@ -13,6 +13,16 @@ class GNLoudnessDetector : public node::ObjectWrap {
         static v8::Handle<v8::Value> Create(const v8::Arguments& args);
 
 
+        struct EventContext {
+            uv_thread_t event_thread;
+            uv_async_t event_async;
+            uv_cond_t cond;
+            uv_mutex_t mutex;
+            GrooveLoudnessDetector *detector;
+            v8::Persistent<v8::Function> event_cb;
+        };
+
+        EventContext *event_context;
         GrooveLoudnessDetector *detector;
 
     private:
