@@ -251,4 +251,68 @@ Handle<Value> GNLoudnessDetector::Attach(const Arguments& args) {
     return scope.Close(Undefined());
 }
 
-// TODO: implement detach
+struct DetachReq {
+    uv_work_t req;
+    GrooveLoudnessDetector *detector;
+    Persistent<Function> callback;
+    int errcode;
+    GNLoudnessDetector::EventContext *event_context;
+};
+
+static void DetachAsyncFree(uv_handle_t *handle) {
+    GNLoudnessDetector::EventContext *context = reinterpret_cast<GNLoudnessDetector::EventContext *>(handle->data);
+    delete context;
+}
+
+static void DetachAsync(uv_work_t *req) {
+    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
+    r->errcode = groove_loudness_detector_detach(r->detector);
+    uv_cond_signal(&r->event_context->cond);
+    uv_thread_join(&r->event_context->event_thread);
+    uv_cond_destroy(&r->event_context->cond);
+    uv_mutex_destroy(&r->event_context->mutex);
+    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
+}
+
+static void DetachAfter(uv_work_t *req) {
+    HandleScope scope;
+    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
+
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    if (r->errcode < 0) {
+        argv[0] = Exception::Error(String::New("loudness detector detach failed"));
+    } else {
+        argv[0] = Null();
+    }
+    TryCatch try_catch;
+    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+
+    delete r;
+
+    if (try_catch.HasCaught()) {
+        node::FatalException(try_catch);
+    }
+}
+
+Handle<Value> GNLoudnessDetector::Detach(const Arguments& args) {
+    HandleScope scope;
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(args.This());
+
+    if (args.Length() < 1 || !args[0]->IsFunction()) {
+        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
+        return scope.Close(Undefined());
+    }
+
+    DetachReq *request = new DetachReq;
+
+    request->req.data = request;
+    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->detector = gn_detector->detector;
+    request->event_context = gn_detector->event_context;
+
+    uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
+            (uv_after_work_cb)DetachAfter);
+
+    return scope.Close(Undefined());
+}

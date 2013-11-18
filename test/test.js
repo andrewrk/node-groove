@@ -99,7 +99,7 @@ test("playlist item ids", function(t) {
     });
 });
 
-test("attaching and detaching player", function(t) {
+test("create, attach, detach player", function(t) {
     t.plan(2);
     var playlist = groove.createPlaylist();
     var player = groove.createPlayer();
@@ -111,21 +111,14 @@ test("attaching and detaching player", function(t) {
     });
 });
 
-test("replaygain scan", function(t) {
-  t.plan(6);
-  groove.open(testOgg, function(err, theFile) {
-    t.ok(!err);
-    var scan = groove.createReplayGainScan([theFile], 10);
-    scan.on('file', function(file, gain, peak) {
-      t.equal(file.id, theFile.id);
-      t.equal(Math.round(gain * 1000), -9294);
-      t.equal(Math.round(peak * 1000), 1026);
-      console.log("file", file.filename, "gain", gain, "peak", peak);
-    });
-    scan.on('end', function(gain, peak) {
-      t.equal(Math.round(gain * 1000), -9294);
-      t.equal(Math.round(peak * 1000), 1026);
-      console.log("end", "gain", gain, "peak", peak);
+test("create, attach, detach loudness detector", function(t) {
+  t.plan(2);
+  var playlist = groove.createPlaylist();
+  var detector = groove.createLoudnessDetector();
+  detector.attach(playlist, function(err) {
+    t.ok(!err, "attach");
+    detector.detach(function(err) {
+      t.ok(!err, "detach");
     });
   });
 });
