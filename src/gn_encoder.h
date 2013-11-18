@@ -15,6 +15,8 @@ class GNEncoder : public node::ObjectWrap {
         struct EventContext {
             uv_thread_t event_thread;
             uv_async_t event_async;
+            uv_cond_t cond;
+            uv_mutex_t mutex;
             GrooveEncoder *encoder;
             v8::Persistent<v8::Function> event_cb;
         };

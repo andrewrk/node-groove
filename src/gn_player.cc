@@ -157,6 +157,9 @@ static void AttachAsync(uv_work_t *req) {
 
     GNPlayer::EventContext *context = r->event_context;
 
+    uv_cond_init(&context->cond);
+    uv_mutex_init(&context->mutex);
+
     uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
     context->event_async.data = context;
 

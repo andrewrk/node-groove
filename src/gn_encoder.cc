@@ -82,13 +82,17 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
     if (try_catch.HasCaught()) {
         node::FatalException(try_catch);
     }
+
+    uv_cond_signal(&context->cond);
 }
 
 static void EventThreadEntry(void *arg) {
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(arg);
     while (groove_encoder_buffer_peek(context->encoder, 1) > 0) {
-        // TODO this should wait on some condition instead of spinning
         uv_async_send(&context->event_async);
+        uv_mutex_lock(&context->mutex);
+        uv_cond_wait(&context->cond, &context->mutex);
+        uv_mutex_unlock(&context->mutex);
     }
 }
 
@@ -289,7 +293,10 @@ static void DetachAsync(uv_work_t *req) {
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
     r->errcode = groove_encoder_detach(r->encoder);
 
+    uv_cond_signal(&r->event_context->cond);
     uv_thread_join(&r->event_context->event_thread);
+    uv_cond_destroy(&r->event_context->cond);
+    uv_mutex_destroy(&r->event_context->mutex);
     uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
 }
 
