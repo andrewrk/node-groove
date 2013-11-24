@@ -1,6 +1,6 @@
 {
   "name": "groove",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "bindings to libgroove - generic music player library",
   "main": "lib/index.js",
   "author": "Andrew Kelley <superjoe30@gmail.com>",
