@@ -3,7 +3,7 @@
 
 #include <node.h>
 
-#include "groove.h"
+#include <grooveplayer/player.h>
 
 class GNPlayer : public node::ObjectWrap {
     public:

@@ -12,7 +12,9 @@
           "src/gn_encoder.cc"
         ],
         "libraries": [
-            "-lgroove"
+            "-lgroove",
+            "-lgrooveplayer",
+            "-lgrooveloudness"
         ]
     }
   ]

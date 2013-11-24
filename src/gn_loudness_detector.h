@@ -3,7 +3,7 @@
 
 #include <node.h>
 
-#include "groove.h"
+#include <grooveloudness/loudness.h>
 
 class GNLoudnessDetector : public node::ObjectWrap {
     public:

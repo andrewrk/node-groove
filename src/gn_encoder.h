@@ -3,7 +3,7 @@
 
 #include <node.h>
 
-#include "groove.h"
+#include <groove/encoder.h>
 
 class GNEncoder : public node::ObjectWrap {
     public:

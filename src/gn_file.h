@@ -3,7 +3,7 @@
 
 #include <node.h>
 
-#include "groove.h"
+#include <groove/groove.h>
 
 class GNFile : public node::ObjectWrap {
     public:
