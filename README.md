@@ -1,6 +1,6 @@
 # node-groove
 
-Node.js bindings to [libgroove](https://github.com/superjoe30/libgroove) -
+Node.js bindings to [libgroove](https://github.com/andrewrk/libgroove) -
 generic music player backend library.
 
 Live discussion in #libgroove IRC channel on irc.freenode.org.
