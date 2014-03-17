@@ -20,26 +20,25 @@ player.on('nowplaying', function() {
   console.log("Now playing:", artist, "-", title);
 });
 
-player.attach(playlist, function(err) {
-  assert.ifError(err);
-
-  var batch = new Batch();
-  for (var i = 2; i < process.argv.length; i += 1) {
-    batch.push(openFileFn(process.argv[i]));
-  }
-  batch.end(function(err, files) {
-    files.forEach(function(file) {
-      if (file) {
-        playlist.insert(file, null);
-      }
-    });
+var batch = new Batch();
+for (var i = 2; i < process.argv.length; i += 1) {
+  batch.push(openFileFn(process.argv[i]));
+}
+batch.end(function(err, files) {
+  files.forEach(function(file) {
+    if (file) {
+      playlist.insert(file, null);
+    }
   });
-  function openFileFn(filename) {
-    return function(cb) {
-      groove.open(filename, cb);
-    };
-  }
+  player.attach(playlist, function(err) {
+    assert.ifError(err);
+  });
 });
+function openFileFn(filename) {
+  return function(cb) {
+    groove.open(filename, cb);
+  };
+}
 
 function cleanup() {
   var batch = new Batch();
