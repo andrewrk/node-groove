@@ -8,6 +8,7 @@ using namespace v8;
 GNPlayer::GNPlayer() {};
 GNPlayer::~GNPlayer() {
     groove_player_destroy(player);
+    delete event_context;
 };
 
 Persistent<Function> GNPlayer::constructor;
@@ -306,8 +307,6 @@ struct DetachReq {
 };
 
 static void DetachAsyncFree(uv_handle_t *handle) {
-    GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
-    delete context;
 }
 
 static void DetachAsync(uv_work_t *req) {
