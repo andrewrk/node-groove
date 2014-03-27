@@ -9,6 +9,7 @@ using namespace v8;
 GNEncoder::GNEncoder() {};
 GNEncoder::~GNEncoder() {
     groove_encoder_destroy(encoder);
+    delete event_context;
 };
 
 Persistent<Function> GNEncoder::constructor;
@@ -287,8 +288,6 @@ struct DetachReq {
 };
 
 static void DetachAsyncFree(uv_handle_t *handle) {
-    GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
-    delete context;
 }
 
 static void DetachAsync(uv_work_t *req) {
