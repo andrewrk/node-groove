@@ -385,3 +385,56 @@ detected and `pos` is how many seconds into the song the detect head is.
 Emitted when there is info available to get. You still need to get the info
 with `getInfo()`.
 
+### GrooveFingerprinter
+
+#### groove.createFingerprinter()
+
+returns a GrooveFingerprinter
+
+#### groove.encodeFingerprint(rawFingerprint)
+
+Given an Array of integers which is the raw fingerprint, encode it into a
+string which can be submitted to acoustid.org.
+
+#### groove.decodeFingerprint(fingerprint)
+
+Given the fingerprint string, returns a list of integers which is the raw
+fingerprint data.
+
+#### printer.infoQueueSize
+
+Set this to determine how far ahead into the playlist to look.
+
+#### printer.sinkBufferSize
+
+How big the sink buffer should be, in sample frames.
+`groove.createFingerprinter()` defaults this to 8192
+
+#### printer.attach(playlist, callback)
+
+`callback(err)`
+
+#### printer.detach(callback)
+
+`callback(err)`
+
+#### printer.getInfo()
+
+Returns `null` if no info available, or an object with these properties:
+
+ * `fingerprint` - string encoded fingerprint which you can submit to acoustid.org.
+ * `duration` - duration in seconds of the track
+ * `item` - the GroovePlaylistItem that this applies to, or `null` if it applies
+   to the entire album.
+
+#### printer.position()
+
+Returns `{item, pos}` where `item` is the playlist item currently being
+fingerprinted and `pos` is how many seconds into the song the printer head is.
+
+#### printer.on('info', handler)
+
+`handler()`
+
+Emitted when there is info available to get. You still need to get the info
+with `getInfo()`.

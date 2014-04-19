@@ -5,6 +5,7 @@
 #include "gn_playlist.h"
 #include "gn_playlist_item.h"
 #include "gn_loudness_detector.h"
+#include "gn_fingerprinter.h"
 #include "gn_encoder.h"
 
 using namespace v8;
@@ -48,6 +49,7 @@ void Initialize(Handle<Object> exports) {
     GNPlaylistItem::Init();
     GNLoudnessDetector::Init();
     GNEncoder::Init();
+    GNFingerprinter::Init();
 
     SetProperty(exports, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(exports, "LOG_ERROR", GROOVE_LOG_ERROR);
@@ -68,6 +70,10 @@ void Initialize(Handle<Object> exports) {
     SetMethod(exports, "createPlaylist", GNPlaylist::Create);
     SetMethod(exports, "createLoudnessDetector", GNLoudnessDetector::Create);
     SetMethod(exports, "createEncoder", GNEncoder::Create);
+    SetMethod(exports, "createFingerprinter", GNFingerprinter::Create);
+
+    SetMethod(exports, "encodeFingerprint", GNFingerprinter::Encode);
+    SetMethod(exports, "decodeFingerprint", GNFingerprinter::Decode);
 }
 
 NODE_MODULE(groove, Initialize)

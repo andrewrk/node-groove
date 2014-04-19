@@ -9,12 +9,14 @@
           "src/gn_player.cc",
           "src/gn_playlist_item.cc",
           "src/gn_loudness_detector.cc",
+          "src/gn_fingerprinter.cc",
           "src/gn_encoder.cc"
         ],
         "libraries": [
             "-lgroove",
             "-lgrooveplayer",
-            "-lgrooveloudness"
+            "-lgrooveloudness",
+            "-lgroovefingerprinter"
         ]
     }
   ]

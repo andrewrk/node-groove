@@ -1,33 +1,35 @@
-#ifndef GN_LOUDNESS_DETECTOR_H
-#define GN_LOUDNESS_DETECTOR_H
+#ifndef GN_FINGERPRINTER_H
+#define GN_FINGERPRINTER_H
 
 #include <node.h>
 
-#include <grooveloudness/loudness.h>
+#include <groovefingerprinter/fingerprinter.h>
 
-class GNLoudnessDetector : public node::ObjectWrap {
+class GNFingerprinter : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GrooveLoudnessDetector *detector);
+        static v8::Handle<v8::Value> NewInstance(GrooveFingerprinter *printer);
 
         static v8::Handle<v8::Value> Create(const v8::Arguments& args);
 
+        static v8::Handle<v8::Value> Encode(const v8::Arguments& args);
+        static v8::Handle<v8::Value> Decode(const v8::Arguments& args);
 
         struct EventContext {
             uv_thread_t event_thread;
             uv_async_t event_async;
             uv_cond_t cond;
             uv_mutex_t mutex;
-            GrooveLoudnessDetector *detector;
+            GrooveFingerprinter *printer;
             v8::Persistent<v8::Function> event_cb;
         };
 
         EventContext *event_context;
-        GrooveLoudnessDetector *detector;
+        GrooveFingerprinter *printer;
 
     private:
-        GNLoudnessDetector();
-        ~GNLoudnessDetector();
+        GNFingerprinter();
+        ~GNFingerprinter();
 
         static v8::Persistent<v8::Function> constructor;
         static v8::Handle<v8::Value> New(const v8::Arguments& args);
