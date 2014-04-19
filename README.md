@@ -29,6 +29,8 @@ groove.open("danse-macabre.ogg", function(err, file) {
 
  * example/metadata.js - read or update metadata in a media file
  * example/playlist.js - play several files in a row and then exit
+ * example/replaygain.js - compute replaygain values for media files
+ * example/transcode.js - convert and splice several files together
 
 ## API Documentation
 
