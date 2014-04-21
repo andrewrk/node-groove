@@ -329,10 +329,10 @@ Handle<Value> GNFingerprinter::Encode(const Arguments& args) {
 
     Local<Array> int_list = Local<Array>::Cast(args[0]);
     int len = int_list->Length();
-    uint32_t *raw_fingerprint = new uint32_t[len];
+    int32_t *raw_fingerprint = new int32_t[len];
     for (int i = 0; i < len; i += 1) {
         double val = int_list->Get(Number::New(i))->NumberValue();
-        raw_fingerprint[i] = (uint32_t)val;
+        raw_fingerprint[i] = (int32_t)val;
     }
     char *fingerprint;
     groove_fingerprinter_encode(raw_fingerprint, len, &fingerprint);
@@ -353,9 +353,9 @@ Handle<Value> GNFingerprinter::Decode(const Arguments& args) {
     String::Utf8Value utf8fingerprint(args[0]->ToString());
     char *fingerprint = *utf8fingerprint;
 
-    uint32_t *raw_fingerprint;
+    int32_t *raw_fingerprint;
     int raw_fingerprint_len;
-    groove_fingerprinter_decode(fingerprint, (void**)&raw_fingerprint, &raw_fingerprint_len);
+    groove_fingerprinter_decode(fingerprint, &raw_fingerprint, &raw_fingerprint_len);
     Local<Array> int_list = Array::New();
 
     for (int i = 0; i < raw_fingerprint_len; i += 1) {
