@@ -172,15 +172,25 @@ struct CloseReq {
 
 static void CloseAsync(uv_work_t *req) {
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
-    groove_file_close(r->file);
+    if (r->file) {
+        groove_file_close(r->file);
+    }
 }
 
 static void CloseAfter(uv_work_t *req) {
     HandleScope scope;
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
 
+    const unsigned argc = 1;
+    Handle<Value> argv[argc];
+    if (r->file) {
+        argv[0] = Null();
+    } else {
+        argv[0] = Exception::Error(String::New("file already closed"));
+    }
+
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), 0, NULL);
+    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
 
     delete r;
 
@@ -204,6 +214,7 @@ Handle<Value> GNFile::Close(const Arguments& args) {
     request->file = gn_file->file;
     request->req.data = request;
 
+    gn_file->file = NULL;
     uv_queue_work(uv_default_loop(), &request->req, CloseAsync, (uv_after_work_cb)CloseAfter);
 
     return scope.Close(Undefined());
