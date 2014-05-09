@@ -439,3 +439,75 @@ fingerprinted and `pos` is how many seconds into the song the printer head is.
 
 Emitted when there is info available to get. You still need to get the info
 with `getInfo()`.
+
+### GrooveSink
+
+Raw sink. Provides raw audio buffers.
+
+#### groove.createSink()
+
+returns a GrooveSink
+
+#### sink.audioFormat
+
+The desired audio format settings which you want this sink to fill up with.
+
+Properties:
+
+ * `sampleRate`
+ * `channelLayout`
+ * `sampleFormat`
+
+#### sink.disableResample
+
+Set this to `true` to ignore audioFormat. If you set this flag, the buffers you
+pull from this sink could have any format.
+
+#### sink.bufferSampleCount
+
+If you leave this to its default of 0, frames pulled from the sink will have
+sample count determined by efficiency. If you set this to a positive number,
+frames pulled from the sink will always have this number of samples.
+
+#### sink.bufferSize
+
+How big the buffer queue should be, in sample frames. Defaults to 8192.
+
+#### sink.playlist
+
+Read-only. Set when you attach the sink and cleared when you detach the sink.
+
+#### sink.bytesPerSec
+
+Read-only. Automatically computed from audioFormat when you attach the sink.
+
+#### sink.getBuffer()
+
+Returns `null` if no buffer available, or an object with these properties:
+
+ * `buffer` - a node `Buffer` instance which is the raw audio data for this chunk
+   this can be `null` in which case this buffer is actually the end of
+   playlist sentinel.
+ * `item` - the GroovePlaylistItem of which this buffer is audio data for
+ * `pos` - position in seconds that this buffer represents in into the item
+ * `format` - audio format of this buffer
+ * `frameCount` - number of audio frames described by this buffer.
+
+#### sink.on('buffer', handler)
+
+Emitted when there is a buffer available to get. You still need to get the
+buffer with `getBuffer()`.
+
+
+#### sink.on('flush', handler)
+
+Emitted when the audio queue is flushed. For example, if you seek to a
+different location in the song.
+
+#### sink.on('purge', handler)
+
+`handler(playlistItem)`
+
+Emitted when a playlist item is deleted. Take this opportunity to remove all
+your references to the playlist item.
+
