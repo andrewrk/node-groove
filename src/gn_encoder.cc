@@ -377,6 +377,7 @@ Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
                 object->Set(String::NewSymbol("item"), Null());
             }
             object->Set(String::NewSymbol("pos"), Number::New(buffer->pos));
+            object->Set(String::NewSymbol("pts"), Number::New(groove_buffer_pts(buffer)));
             return scope.Close(object);
         }
         case GROOVE_BUFFER_END: {
@@ -384,6 +385,7 @@ Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
             object->Set(String::NewSymbol("buffer"), Null());
             object->Set(String::NewSymbol("item"), Null());
             object->Set(String::NewSymbol("pos"), Null());
+            object->Set(String::NewSymbol("pts"), Null());
             return scope.Close(object);
         }
         default:
