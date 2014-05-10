@@ -306,6 +306,33 @@ which format/codec to use.
 optional - provide a mime type string to help libgrooove guess
 which format/codec to use.
 
+#### encoder.targetAudioFormat
+
+The desired audio format settings with which to encode.
+`groove.createEncoder()` defaults these to 44100 Hz,
+signed 16-bit int, stereo.
+These are preferences; if a setting cannot be used, a substitute will
+be used instead. In this case, actualAudioFormat will be updated to reflect
+the substituted values.
+
+Properties:
+
+ * `sampleRate`
+ * `channelLayout`
+ * `sampleFormat`
+
+#### encoder.actualAudioFormat
+
+groove sets this to the actual format you get when you attach the encoder.
+Ideally will be the same as targetAudioFormat but might not be.
+
+Properties:
+
+ * `sampleRate`
+ * `channelLayout`
+ * `sampleFormat`
+
+
 #### encoder.attach(playlist, callback)
 
 `callback(err)`
