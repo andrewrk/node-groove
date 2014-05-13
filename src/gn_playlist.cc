@@ -166,7 +166,7 @@ Handle<Value> GNPlaylist::DecodePosition(const Arguments& args) {
     HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
     GroovePlaylistItem *item;
-    double pos;
+    double pos = -1.0;
     groove_playlist_position(gn_playlist->playlist, &item, &pos);
     Local<Object> obj = Object::New();
     obj->Set(String::NewSymbol("pos"), Number::New(pos));
