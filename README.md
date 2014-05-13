@@ -127,13 +127,16 @@ Use `playlist.insert` and `playlist.remove` to modify.
 
 Seek to `playlistItem`, `position` seconds into the song.
 
-#### playlist.insert(file, gain, nextPlaylistItem)
+#### playlist.insert(file, gain, peak, nextPlaylistItem)
 
 Creates a new playlist item with file and puts it in the playlist before
 `nextPlaylistItem`. If `nextPlaylistItem` is `null`, appends the new
 item to the playlist.
 
 `gain` is a float format volume adjustment that applies only to this item.
+defaults to 1.0
+
+`peak` is float format, see `item.peak`.
 defaults to 1.0
 
 Returns the newly added playlist item.
@@ -181,6 +184,10 @@ replaygain will typically lower your volume a significant amount.
 `gain` is a float that affects the volume of the specified playlist item only.
 To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
 
+#### playlist.setItemPeak(playlistItem, peak)
+
+See `item.peak`
+
 ### GroovePlaylistItem
 
 These are not instantiated directly; instead they are returned from
@@ -189,6 +196,18 @@ These are not instantiated directly; instead they are returned from
 #### item.file
 
 #### item.gain
+
+A volume adjustment in float format to apply to the file when it plays.
+This is typically used for loudness compensation, for example ReplayGain.
+To convert from dB to float, use `groove.dBToFloat`
+
+#### item.peak
+
+The sample peak of this playlist item is assumed to be 1.0 in float
+format. If you know for certain that the peak is less than 1.0, you
+may set this value which may allow the volume adjustment to use
+a pure amplifier rather than a compressor. This results in slightly
+better audio quality.
 
 #### item.id
 
