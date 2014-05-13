@@ -104,7 +104,7 @@ struct AttachReq {
     GroovePlaylist *playlist;
     int errcode;
     Persistent<Object> instance;
-    String::Utf8Value *device_name;
+    int device_index;
     GNPlayer::EventContext *event_context;
 };
 
@@ -145,16 +145,8 @@ static void EventThreadEntry(void *arg) {
 static void AttachAsync(uv_work_t *req) {
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
-    if (r->device_name) {
-        r->player->device_name = **r->device_name;
-    } else {
-        r->player->device_name = NULL;
-    }
+    r->player->device_index = r->device_index;
     r->errcode = groove_player_attach(r->player, r->playlist);
-    if (r->device_name) {
-        delete r->device_name;
-        r->device_name = NULL;
-    }
 
     GNPlayer::EventContext *context = r->event_context;
 
@@ -225,7 +217,7 @@ Handle<Value> GNPlayer::Create(const Arguments& args) {
     targetAudioFormat->Set(String::NewSymbol("sampleFormat"),
             Number::New(player->target_audio_format.sample_fmt));
 
-    instance->Set(String::NewSymbol("deviceName"), Null());
+    instance->Set(String::NewSymbol("deviceIndex"), Null());
     instance->Set(String::NewSymbol("actualAudioFormat"), Null());
     instance->Set(String::NewSymbol("targetAudioFormat"), targetAudioFormat);
     instance->Set(String::NewSymbol("deviceBufferSize"),
@@ -270,12 +262,12 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
     request->event_context = gn_player->event_context;
 
     // copy the properties from our instance to the player
-    Local<Value> deviceName = instance->Get(String::NewSymbol("deviceName"));
+    Local<Value> deviceIndex = instance->Get(String::NewSymbol("deviceIndex"));
 
-    if (deviceName->IsNull() || deviceName->IsUndefined()) {
-        request->device_name = NULL;
+    if (deviceIndex->IsNull() || deviceIndex->IsUndefined()) {
+        request->device_index = -1;
     } else {
-        request->device_name = new String::Utf8Value(deviceName->ToString());
+        request->device_index = (int) deviceIndex->NumberValue();
     }
     Local<Object> targetAudioFormat = targetAudioFormatValue->ToObject();
     Local<Value> sampleRate = targetAudioFormat->Get(String::NewSymbol("sampleRate"));

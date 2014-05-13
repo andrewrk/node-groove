@@ -27,7 +27,7 @@ for (var i = 2; i < process.argv.length; i += 1) {
 batch.end(function(err, files) {
   files.forEach(function(file) {
     if (file) {
-      playlist.insert(file, null);
+      playlist.insert(file);
     }
   });
   player.attach(playlist, function(err) {

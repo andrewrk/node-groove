@@ -117,7 +117,11 @@ Handle<Value> GNFingerprinter::GetInfo(const Arguments& args) {
         Local<Object> object = Object::New();
 
         if (info.fingerprint) {
-            object->Set(String::NewSymbol("fingerprint"), String::New(info.fingerprint));
+            Local<Array> int_list = Array::New();
+            for (int i = 0; i < info.fingerprint_size; i += 1) {
+                int_list->Set(Number::New(i), Number::New(info.fingerprint[i]));
+            }
+            object->Set(String::NewSymbol("fingerprint"), int_list);
         } else {
             object->Set(String::NewSymbol("fingerprint"), Null());
         }

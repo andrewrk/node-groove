@@ -34,7 +34,7 @@ void GNPlaylist::Init() {
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
     // Fields
     AddGetter(tpl, "id", GetId);
-    AddGetter(tpl, "volume", GetVolume);
+    AddGetter(tpl, "gain", GetGain);
     // Methods
     AddMethod(tpl, "play", Play);
     AddMethod(tpl, "items", Playlist);
@@ -47,7 +47,8 @@ void GNPlaylist::Init() {
     AddMethod(tpl, "clear", Clear);
     AddMethod(tpl, "count", Count);
     AddMethod(tpl, "setItemGain", SetItemGain);
-    AddMethod(tpl, "setVolume", SetVolume);
+    AddMethod(tpl, "setItemPeak", SetItemPeak);
+    AddMethod(tpl, "setGain", SetGain);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -80,10 +81,10 @@ Handle<Value> GNPlaylist::GetId(Local<String> property, const AccessorInfo &info
     return scope.Close(String::New(buf));
 }
 
-Handle<Value> GNPlaylist::GetVolume(Local<String> property, const AccessorInfo &info) {
+Handle<Value> GNPlaylist::GetGain(Local<String> property, const AccessorInfo &info) {
     HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
-    return scope.Close(Number::New(gn_playlist->playlist->volume));
+    return scope.Close(Number::New(gn_playlist->playlist->gain));
 }
 
 Handle<Value> GNPlaylist::Play(const Arguments& args) {
@@ -134,17 +135,21 @@ Handle<Value> GNPlaylist::Insert(const Arguments& args) {
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args[0]->ToObject());
     double gain = 1.0;
+    double peak = 1.0;
     if (!args[1]->IsNull() && !args[1]->IsUndefined()) {
         gain = args[1]->NumberValue();
     }
-    GroovePlaylistItem *item = NULL;
     if (!args[2]->IsNull() && !args[2]->IsUndefined()) {
+        peak = args[2]->NumberValue();
+    }
+    GroovePlaylistItem *item = NULL;
+    if (!args[3]->IsNull() && !args[3]->IsUndefined()) {
         GNPlaylistItem *gn_pl_item =
-            node::ObjectWrap::Unwrap<GNPlaylistItem>(args[2]->ToObject());
+            node::ObjectWrap::Unwrap<GNPlaylistItem>(args[3]->ToObject());
         item = gn_pl_item->playlist_item;
     }
     GroovePlaylistItem *result = groove_playlist_insert(gn_playlist->playlist,
-            gn_file->file, gain, item);
+            gn_file->file, gain, peak, item);
 
     return scope.Close(GNPlaylistItem::NewInstance(result));
 }
@@ -199,15 +204,23 @@ Handle<Value> GNPlaylist::SetItemGain(const Arguments& args) {
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
     double gain = args[1]->NumberValue();
-    groove_playlist_set_gain(gn_playlist->playlist, gn_pl_item->playlist_item, gain);
+    groove_playlist_set_item_gain(gn_playlist->playlist, gn_pl_item->playlist_item, gain);
     return scope.Close(Undefined());
 }
 
-
-Handle<Value> GNPlaylist::SetVolume(const Arguments& args) {
+Handle<Value> GNPlaylist::SetItemPeak(const Arguments& args) {
     HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
-    groove_playlist_set_volume(gn_playlist->playlist, args[0]->NumberValue());
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args[0]->ToObject());
+    double peak = args[1]->NumberValue();
+    groove_playlist_set_item_peak(gn_playlist->playlist, gn_pl_item->playlist_item, peak);
+    return scope.Close(Undefined());
+}
+
+Handle<Value> GNPlaylist::SetGain(const Arguments& args) {
+    HandleScope scope;
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
+    groove_playlist_set_gain(gn_playlist->playlist, args[0]->NumberValue());
     return scope.Close(Undefined());
 }
 

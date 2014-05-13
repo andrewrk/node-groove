@@ -169,9 +169,9 @@ Remove all playlist items.
 
 How many items are on the playlist.
 
-#### playlist.volume
+#### playlist.gain
 
-#### playlist.setVolume(value)
+#### playlist.setGain(value)
 
 Between 0.0 and 1.0. You probably want to leave this at 1.0, since using
 replaygain will typically lower your volume a significant amount.
@@ -209,10 +209,11 @@ to.
 Creates a GroovePlayer instance which you can then configure by setting
 properties.
 
-#### player.deviceName
+#### player.deviceIndex
 
-Before calling `attach()`, set this to one of the device names returned from
-`groove.getDevices()` or `null` to represent the default device.
+Before calling `attach()`, set this to the index of one of the devices
+returned from `groove.getDevices()` or `null` to represent the default device.
+Use `groove.DUMMY_DEVICE` to represent a dummy audio player.
 
 #### player.targetAudioFormat
 
@@ -450,7 +451,7 @@ How big the sink buffer should be, in sample frames.
 
 Returns `null` if no info available, or an object with these properties:
 
- * `fingerprint` - string encoded fingerprint which you can submit to acoustid.org.
+ * `fingerprint` - integer array which is the raw fingerprint
  * `duration` - duration in seconds of the track
  * `item` - the GroovePlaylistItem that this applies to, or `null` if it applies
    to the entire album.
