@@ -34,6 +34,16 @@ Handle<Value> GetDevices(const Arguments& args) {
     return scope.Close(deviceList);
 }
 
+Handle<Value> GetVersion(const Arguments& args) {
+    HandleScope scope;
+
+    Local<Object> version = Object::New();
+    version->Set(String::NewSymbol("major"), Number::New(groove_version_major()));
+    version->Set(String::NewSymbol("minor"), Number::New(groove_version_minor()));
+    version->Set(String::NewSymbol("patch"), Number::New(groove_version_patch()));
+    return scope.Close(version);
+}
+
 template <typename target_t>
 static void SetProperty(target_t obj, const char* name, double n) {
     obj->Set(String::NewSymbol(name), Number::New(n));
@@ -65,6 +75,7 @@ void Initialize(Handle<Object> exports) {
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "getDevices", GetDevices);
+    SetMethod(exports, "getVersion", GetVersion);
     SetMethod(exports, "open", GNFile::Open);
     SetMethod(exports, "createPlayer", GNPlayer::Create);
     SetMethod(exports, "createPlaylist", GNPlaylist::Create);

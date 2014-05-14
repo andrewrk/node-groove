@@ -55,6 +55,14 @@ adjustment.
 
 Converts dB format volume adjustment to a floating point gain format.
 
+#### groove.getVersion()
+
+Returns an object with these properties:
+
+ * `major`
+ * `minor`
+ * `patch`
+
 ### GrooveFile
 
 #### groove.open(filename, callback)

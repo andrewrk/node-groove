@@ -8,6 +8,14 @@ var testOgg = path.join(__dirname, "danse.ogg");
 var bogusFile = __filename;
 var rwTestOgg = path.join(__dirname, "danse-rw.ogg");
 
+test("version", function(t) {
+  var ver = groove.getVersion();
+  t.strictEqual(typeof ver.major, 'number');
+  t.strictEqual(typeof ver.minor, 'number');
+  t.strictEqual(typeof ver.patch, 'number');
+  t.end();
+});
+
 test("logging", function(t) {
     t.strictEqual(groove.LOG_ERROR, 16);
     groove.setLogging(groove.LOG_INFO);
