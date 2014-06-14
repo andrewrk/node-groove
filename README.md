@@ -196,6 +196,23 @@ To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
 
 See `item.peak`
 
+#### playlist.setFillMode(mode)
+
+`mode` can be:
+
+ * `groove.EVERY_SINK_FULL`
+
+    This is the default behavior. The playlist will decode audio if any sinks
+    are not full. If any sinks do not drain fast enough the data will buffer up
+    in the playlist.
+
+ * `groove.ANY_SINK_FULL`
+
+    With this behavior, the playlist will stop decoding audio when any attached
+    sink is full, and then resume decoding audio every sink is not full.
+
+Defaults to `groove.EVERY_SINK_FULL`.
+
 ### GroovePlaylistItem
 
 These are not instantiated directly; instead they are returned from

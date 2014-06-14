@@ -41,6 +41,7 @@ class GNPlaylist : public node::ObjectWrap {
         static v8::Handle<v8::Value> SetItemGain(const v8::Arguments& args);
         static v8::Handle<v8::Value> SetItemPeak(const v8::Arguments& args);
         static v8::Handle<v8::Value> SetGain(const v8::Arguments& args);
+        static v8::Handle<v8::Value> SetFillMode(const v8::Arguments& args);
 };
 
 #endif

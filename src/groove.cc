@@ -70,6 +70,9 @@ void Initialize(Handle<Object> exports) {
     SetProperty(exports, "TAG_DONT_OVERWRITE", GROOVE_TAG_DONT_OVERWRITE);
     SetProperty(exports, "TAG_APPEND", GROOVE_TAG_APPEND);
 
+    SetProperty(exports, "EVERY_SINK_FULL", GROOVE_EVERY_SINK_FULL);
+    SetProperty(exports, "ANY_SINK_FULL", GROOVE_ANY_SINK_FULL);
+
     SetProperty(exports, "_EVENT_NOWPLAYING", GROOVE_EVENT_NOWPLAYING);
     SetProperty(exports, "_EVENT_BUFFERUNDERRUN", GROOVE_EVENT_BUFFERUNDERRUN);
 

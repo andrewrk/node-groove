@@ -49,6 +49,7 @@ void GNPlaylist::Init() {
     AddMethod(tpl, "setItemGain", SetItemGain);
     AddMethod(tpl, "setItemPeak", SetItemPeak);
     AddMethod(tpl, "setGain", SetGain);
+    AddMethod(tpl, "setFillMode", SetFillMode);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -221,6 +222,13 @@ Handle<Value> GNPlaylist::SetGain(const Arguments& args) {
     HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
     groove_playlist_set_gain(gn_playlist->playlist, args[0]->NumberValue());
+    return scope.Close(Undefined());
+}
+
+Handle<Value> GNPlaylist::SetFillMode(const Arguments& args) {
+    HandleScope scope;
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args.This());
+    groove_playlist_set_fill_mode(gn_playlist->playlist, args[0]->NumberValue());
     return scope.Close(Undefined());
 }
 
