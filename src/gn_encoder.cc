@@ -84,14 +84,16 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
         node::FatalException(try_catch);
     }
 
+    uv_mutex_lock(&context->mutex);
     uv_cond_signal(&context->cond);
+    uv_mutex_unlock(&context->mutex);
 }
 
 static void EventThreadEntry(void *arg) {
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(arg);
     while (groove_encoder_buffer_peek(context->encoder, 1) > 0) {
-        uv_async_send(&context->event_async);
         uv_mutex_lock(&context->mutex);
+        uv_async_send(&context->event_async);
         uv_cond_wait(&context->cond, &context->mutex);
         uv_mutex_unlock(&context->mutex);
     }

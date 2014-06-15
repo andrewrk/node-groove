@@ -168,14 +168,16 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
         node::FatalException(try_catch);
     }
 
+    uv_mutex_lock(&context->mutex);
     uv_cond_signal(&context->cond);
+    uv_mutex_unlock(&context->mutex);
 }
 
 static void EventThreadEntry(void *arg) {
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(arg);
     while (groove_fingerprinter_info_peek(context->printer, 1) > 0) {
-        uv_async_send(&context->event_async);
         uv_mutex_lock(&context->mutex);
+        uv_async_send(&context->event_async);
         uv_cond_wait(&context->cond, &context->mutex);
         uv_mutex_unlock(&context->mutex);
     }
