@@ -9,17 +9,27 @@
     "url": "https://github.com/andrewrk/node-groove"
   },
   "scripts": {
-    "test": "node test/test.js"
+    "test": "node test/test.js",
+    "install": "node-gyp rebuild"
   },
-  "license": "BSD-2-Clause",
+  "license": "MIT",
   "engines": {
-      "node": ">=0.10.18"
+    "node": ">=0.10.18"
   },
   "devDependencies": {
-    "ncp": "~0.4.2",
-    "tap": "~0.4.4"
+    "ncp": "~0.5.1",
+    "tap": "~0.4.11"
   },
   "dependencies": {
-    "bindings": "~1.1.1"
+    "bindings": "~1.2.1"
+  },
+  "gypfile": true,
+  "bugs": {
+    "url": "https://github.com/andrewrk/node-groove/issues"
+  },
+  "homepage": "https://github.com/andrewrk/node-groove",
+  "directories": {
+    "example": "example",
+    "test": "test"
   }
 }
