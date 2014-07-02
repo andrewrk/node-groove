@@ -377,6 +377,15 @@ Properties:
  * `channelLayout`
  * `sampleFormat`
 
+#### encoder.sinkBufferSize
+
+How big the sink buffer should be, in sample frames.
+`createEncoder` defaults this to 8192
+
+#### encoder.encodedBufferSize
+
+How big the encoded audio buffer should be, in bytes.
+`createEncoder` defaults this to 16384
 
 #### encoder.attach(playlist, callback)
 

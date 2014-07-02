@@ -200,6 +200,8 @@ Handle<Value> GNEncoder::Create(const Arguments& args) {
     instance->Set(String::NewSymbol("codecShortName"), Null());
     instance->Set(String::NewSymbol("filename"), Null());
     instance->Set(String::NewSymbol("mimeType"), Null());
+    instance->Set(String::NewSymbol("sinkBufferSize"), Number::New(encoder->sink_buffer_size));
+    instance->Set(String::NewSymbol("encodedBufferSize"), Number::New(encoder->encoded_buffer_size));
 
     return scope.Close(instance);
 }
@@ -274,6 +276,12 @@ Handle<Value> GNEncoder::Attach(const Arguments& args) {
 
     double bit_rate = instance->Get(String::NewSymbol("bitRate"))->NumberValue();
     encoder->bit_rate = (int)bit_rate;
+
+    double sink_buffer_size = instance->Get(String::NewSymbol("sinkBufferSize"))->NumberValue();
+    encoder->sink_buffer_size = (int)sink_buffer_size;
+
+    double encoded_buffer_size = instance->Get(String::NewSymbol("encodedBufferSize"))->NumberValue();
+    encoder->encoded_buffer_size = (int)encoded_buffer_size;
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
