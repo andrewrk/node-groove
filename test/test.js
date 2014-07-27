@@ -142,3 +142,15 @@ it("create, attach, detach encoder", function(done) {
         });
     });
 });
+
+it("create, attach, detach fingerprinter", function(done) {
+    var playlist = groove.createPlaylist();
+    var fingerprinter = groove.createFingerprinter();
+    fingerprinter.attach(playlist, function(err) {
+        assert.ok(!err);
+        fingerprinter.detach(function(err) {
+            assert.ok(!err);
+            done();
+        });
+    });
+});
