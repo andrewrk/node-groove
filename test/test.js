@@ -17,7 +17,7 @@ it("version", function() {
 
 it("logging", function() {
     assert.strictEqual(groove.LOG_ERROR, 16);
-    groove.setLogging(groove.LOG_INFO);
+    groove.setLogging(groove.LOG_QUIET);
 });
 
 it("open fails for bogus file", function(done) {
@@ -108,6 +108,7 @@ it("playlist item ids", function(done) {
 it("create, attach, detach player", function(done) {
     var playlist = groove.createPlaylist();
     var player = groove.createPlayer();
+    player.deviceIndex = groove.DUMMY_DEVICE;
     player.attach(playlist, function(err) {
         assert.ok(!err);
         player.detach(function(err) {
