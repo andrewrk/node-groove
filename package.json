@@ -9,7 +9,7 @@
     "url": "https://github.com/andrewrk/node-groove"
   },
   "scripts": {
-    "test": "node test/test.js",
+    "test": "mocha --reporter spec",
     "install": "node-gyp rebuild"
   },
   "license": "MIT",
@@ -17,8 +17,8 @@
     "node": ">=0.10.18"
   },
   "devDependencies": {
-    "ncp": "~0.5.1",
-    "tap": "~0.4.11"
+    "ncp": "~0.6.0",
+    "mocha": "~1.21.0"
   },
   "dependencies": {
     "bindings": "~1.2.1"
