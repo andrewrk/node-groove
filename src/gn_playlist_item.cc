@@ -23,6 +23,7 @@ void GNPlaylistItem::Init() {
     AddGetter(tpl, "file", GetFile);
     AddGetter(tpl, "id", GetId);
     AddGetter(tpl, "gain", GetGain);
+    AddGetter(tpl, "peak", GetPeak);
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
 }
@@ -68,4 +69,13 @@ Handle<Value> GNPlaylistItem::GetGain(Local<String> property,
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
     double gain = gn_pl_item->playlist_item->gain;
     return scope.Close(Number::New(gain));
+}
+
+Handle<Value> GNPlaylistItem::GetPeak(Local<String> property,
+        const AccessorInfo &info)
+{
+    HandleScope scope;
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
+    double peak = gn_pl_item->playlist_item->peak;
+    return scope.Close(Number::New(peak));
 }

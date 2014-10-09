@@ -220,11 +220,15 @@ These are not instantiated directly; instead they are returned from
 
 #### item.file
 
+Read-only.
+
 #### item.gain
 
 A volume adjustment in float format to apply to the file when it plays.
 This is typically used for loudness compensation, for example ReplayGain.
 To convert from dB to float, use `groove.dBToFloat`
+
+Read-only. Use `playlist.setItemGain` to modify.
 
 #### item.peak
 
@@ -234,12 +238,16 @@ may set this value which may allow the volume adjustment to use
 a pure amplifier rather than a compressor. This results in slightly
 better audio quality.
 
+Read-only. Use `playlist.setItemPeak` to modify.
+
 #### item.id
 
 Every time you obtain a playlist item from groove, you will get a fresh
 JavaScript object, but it might point to the same underlying libgroove pointer
 as another. The `id` field is a way to check if two playlist items reference
 the same one.
+
+Read-only.
 
 ### GroovePlayer
 
