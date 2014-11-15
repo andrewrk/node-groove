@@ -17,8 +17,8 @@
     "node": ">=0.10.18"
   },
   "devDependencies": {
-    "ncp": "~0.6.0",
-    "mocha": "~1.21.0"
+    "mocha": "~2.0.1",
+    "ncp": "~1.0.1"
   },
   "dependencies": {
     "bindings": "~1.2.1"
