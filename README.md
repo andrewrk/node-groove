@@ -1,8 +1,9 @@
 # node-groove
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/andrewrk/groovebasin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Node.js bindings to [libgroove](https://github.com/andrewrk/libgroove) -
 generic music player backend library.
+
+Live discussion in `#libgroove` on [freenode](https://freenode.net/).
 
 ## Usage
 
