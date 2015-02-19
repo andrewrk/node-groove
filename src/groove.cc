@@ -1,52 +1,60 @@
 #include <node.h>
+#include <nan.h>
 #include <cstdlib>
-#include "gn_file.h"
-#include "gn_player.h"
-#include "gn_playlist.h"
-#include "gn_playlist_item.h"
-#include "gn_loudness_detector.h"
-#include "gn_fingerprinter.h"
-#include "gn_encoder.h"
+#include "file.h"
+#include "player.h"
+#include "playlist.h"
+#include "playlist_item.h"
+#include "loudness_detector.h"
+#include "fingerprinter.h"
+#include "encoder.h"
 
 using namespace v8;
-using namespace node;
 
-Handle<Value> SetLogging(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(SetLogging) {
+    NanScope();
 
     if (args.Length() < 1 || !args[0]->IsNumber()) {
-        ThrowException(Exception::TypeError(String::New("Expected 1 number argument")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected 1 number argument");
+        NanReturnUndefined();
     }
     groove_set_logging(args[0]->NumberValue());
-    return scope.Close(Undefined());
+
+    NanReturnUndefined();
 }
 
-Handle<Value> GetDevices(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GetDevices) {
+    NanScope();
 
-    Local<Array> deviceList = Array::New();
+    Local<Array> deviceList = NanNew<Array>();
     int device_count = groove_device_count();
     for (int i = 0; i < device_count; i += 1) {
         const char *name = groove_device_name(i);
-        deviceList->Set(Number::New(i), String::New(name));
+        deviceList->Set(NanNew<Number>(i), NanNew<String>(name));
     }
-    return scope.Close(deviceList);
+
+    NanReturnValue(deviceList);
 }
 
-Handle<Value> GetVersion(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GetVersion) {
+    NanScope();
 
-    Local<Object> version = Object::New();
-    version->Set(String::NewSymbol("major"), Number::New(groove_version_major()));
-    version->Set(String::NewSymbol("minor"), Number::New(groove_version_minor()));
-    version->Set(String::NewSymbol("patch"), Number::New(groove_version_patch()));
-    return scope.Close(version);
+    Local<Object> version = NanNew<Object>();
+    version->Set(NanNew<String>("major"), NanNew<Number>(groove_version_major()));
+    version->Set(NanNew<String>("minor"), NanNew<Number>(groove_version_minor()));
+    version->Set(NanNew<String>("patch"), NanNew<Number>(groove_version_patch()));
+
+    NanReturnValue(version);
 }
 
 template <typename target_t>
 static void SetProperty(target_t obj, const char* name, double n) {
-    obj->Set(String::NewSymbol(name), Number::New(n));
+    obj->Set(NanNew<String>(name), NanNew<Number>(n));
+}
+
+template <typename target_t, typename FNPTR>
+static void SetMethod(target_t obj, const char* name, FNPTR fn) {
+    obj->Set(NanNew<String>(name), NanNew<FunctionTemplate>(fn)->GetFunction());
 }
 
 void Initialize(Handle<Object> exports) {

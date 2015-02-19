@@ -1,29 +1,29 @@
-#include <node.h>
 #include <node_buffer.h>
-#include "gn_encoder.h"
-#include "gn_playlist.h"
-#include "gn_playlist_item.h"
+#include "encoder.h"
+#include "playlist.h"
+#include "playlist_item.h"
 
 using namespace v8;
 
 GNEncoder::GNEncoder() {};
 GNEncoder::~GNEncoder() {
     groove_encoder_destroy(encoder);
+    delete event_context->event_cb;
     delete event_context;
 };
 
-Persistent<Function> GNEncoder::constructor;
+static v8::Persistent<v8::FunctionTemplate> constructor;
 
 template <typename target_t, typename func_t>
 static void AddMethod(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->Set(String::NewSymbol(name),
-            FunctionTemplate::New(fn)->GetFunction());
+    tpl->PrototypeTemplate()->Set(NanNew<String>(name),
+            NanNew<FunctionTemplate>(fn)->GetFunction());
 }
 
 void GNEncoder::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-    tpl->SetClassName(String::NewSymbol("GrooveEncoder"));
+    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+    tpl->SetClassName(NanNew<String>("GrooveEncoder"));
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
     // Methods
     AddMethod(tpl, "attach", Attach);
@@ -31,32 +31,33 @@ void GNEncoder::Init() {
     AddMethod(tpl, "getBuffer", GetBuffer);
     AddMethod(tpl, "position", Position);
 
-    constructor = Persistent<Function>::New(tpl->GetFunction());
+    NanAssignPersistent(constructor, tpl);
 }
 
-Handle<Value> GNEncoder::New(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::New) {
+    NanScope();
 
     GNEncoder *obj = new GNEncoder();
     obj->Wrap(args.This());
     
-    return scope.Close(args.This());
+    NanReturnValue(args.This());
 }
 
 Handle<Value> GNEncoder::NewInstance(GrooveEncoder *encoder) {
-    HandleScope scope;
+    NanEscapableScope();
 
-    Local<Object> instance = constructor->NewInstance();
+    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
+    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
 
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
     gn_encoder->encoder = encoder;
 
-    return scope.Close(instance);
+    return NanEscapeScope(instance);
 }
 
 struct AttachReq {
     uv_work_t req;
-    Persistent<Function> callback;
+    NanCallback *callback;
     GrooveEncoder *encoder;
     GroovePlaylist *playlist;
     int errcode;
@@ -68,17 +69,17 @@ struct AttachReq {
     GNEncoder::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle, int status) {
-    HandleScope scope;
+static void EventAsyncCb(uv_async_t *handle) {
+    NanScope();
 
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
-    argv[0] = Undefined();
+    argv[0] = NanUndefined();
 
     TryCatch try_catch;
-    context->event_cb->Call(Context::GetCurrent()->Global(), argc, argv);
+    context->event_cb->Call(argc, argv);
 
     if (try_catch.HasCaught()) {
         node::FatalException(try_catch);
@@ -136,30 +137,34 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(String::New("encoder attach failed"));
+        argv[0] = Exception::Error(NanNew<String>("encoder attach failed"));
     } else {
-        argv[0] = Null();
+        argv[0] = NanNull();
 
-        Local<Object> actualAudioFormat = Object::New();
-        actualAudioFormat->Set(String::NewSymbol("sampleRate"),
-                Number::New(r->encoder->actual_audio_format.sample_rate));
-        actualAudioFormat->Set(String::NewSymbol("channelLayout"),
-                Number::New(r->encoder->actual_audio_format.channel_layout));
-        actualAudioFormat->Set(String::NewSymbol("sampleFormat"),
-                Number::New(r->encoder->actual_audio_format.sample_fmt));
+        Local<Object> actualAudioFormat = NanNew<Object>();
+        actualAudioFormat->Set(NanNew<String>("sampleRate"),
+                NanNew<Number>(r->encoder->actual_audio_format.sample_rate));
+        actualAudioFormat->Set(NanNew<String>("channelLayout"),
+                NanNew<Number>(r->encoder->actual_audio_format.channel_layout));
+        actualAudioFormat->Set(NanNew<String>("sampleFormat"),
+                NanNew<Number>(r->encoder->actual_audio_format.sample_fmt));
 
-        r->instance->Set(String::NewSymbol("actualAudioFormat"), actualAudioFormat);
+        Local<Object> o = NanNew(r->instance);
+        o->Set(NanNew<String>("actualAudioFormat"), actualAudioFormat);
+        NanAssignPersistent(r->instance, o);
     }
 
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    NanDisposePersistent(r->instance);
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -167,12 +172,12 @@ static void AttachAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNEncoder::Create(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::Create) {
+    NanScope();
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     GrooveEncoder *encoder = groove_encoder_create();
@@ -180,51 +185,51 @@ Handle<Value> GNEncoder::Create(const Arguments& args) {
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
     EventContext *context = new EventContext;
     gn_encoder->event_context = context;
-    context->event_cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    context->event_cb = new NanCallback(args[0].As<Function>());
     context->encoder = encoder;
 
     // set properties on the instance with default values from
     // GrooveEncoder struct
-    Local<Object> targetAudioFormat = Object::New();
-    targetAudioFormat->Set(String::NewSymbol("sampleRate"),
-            Number::New(encoder->target_audio_format.sample_rate));
-    targetAudioFormat->Set(String::NewSymbol("channelLayout"),
-            Number::New(encoder->target_audio_format.channel_layout));
-    targetAudioFormat->Set(String::NewSymbol("sampleFormat"),
-            Number::New(encoder->target_audio_format.sample_fmt));
+    Local<Object> targetAudioFormat = NanNew<Object>();
+    targetAudioFormat->Set(NanNew<String>("sampleRate"),
+            NanNew<Number>(encoder->target_audio_format.sample_rate));
+    targetAudioFormat->Set(NanNew<String>("channelLayout"),
+            NanNew<Number>(encoder->target_audio_format.channel_layout));
+    targetAudioFormat->Set(NanNew<String>("sampleFormat"),
+            NanNew<Number>(encoder->target_audio_format.sample_fmt));
 
-    instance->Set(String::NewSymbol("bitRate"), Number::New(encoder->bit_rate));
-    instance->Set(String::NewSymbol("actualAudioFormat"), Null());
-    instance->Set(String::NewSymbol("targetAudioFormat"), targetAudioFormat);
-    instance->Set(String::NewSymbol("formatShortName"), Null());
-    instance->Set(String::NewSymbol("codecShortName"), Null());
-    instance->Set(String::NewSymbol("filename"), Null());
-    instance->Set(String::NewSymbol("mimeType"), Null());
-    instance->Set(String::NewSymbol("sinkBufferSize"), Number::New(encoder->sink_buffer_size));
-    instance->Set(String::NewSymbol("encodedBufferSize"), Number::New(encoder->encoded_buffer_size));
+    instance->Set(NanNew<String>("bitRate"), NanNew<Number>(encoder->bit_rate));
+    instance->Set(NanNew<String>("actualAudioFormat"), NanNull());
+    instance->Set(NanNew<String>("targetAudioFormat"), targetAudioFormat);
+    instance->Set(NanNew<String>("formatShortName"), NanNull());
+    instance->Set(NanNew<String>("codecShortName"), NanNull());
+    instance->Set(NanNew<String>("filename"), NanNull());
+    instance->Set(NanNew<String>("mimeType"), NanNull());
+    instance->Set(NanNew<String>("sinkBufferSize"), NanNew<Number>(encoder->sink_buffer_size));
+    instance->Set(NanNew<String>("encodedBufferSize"), NanNew<Number>(encoder->encoded_buffer_size));
 
-    return scope.Close(instance);
+    NanReturnValue(instance);
 }
 
-Handle<Value> GNEncoder::Attach(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::Attach) {
+    NanScope();
 
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsObject()) {
-        ThrowException(Exception::TypeError(String::New("Expected object arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected object arg[0]");
+        NanReturnUndefined();
     }
     if (args.Length() < 2 || !args[1]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[1]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[1]");
+        NanReturnUndefined();
     }
 
     Local<Object> instance = args.This();
-    Local<Value> targetAudioFormatValue = instance->Get(String::NewSymbol("targetAudioFormat"));
+    Local<Value> targetAudioFormatValue = instance->Get(NanNew<String>("targetAudioFormat"));
     if (!targetAudioFormatValue->IsObject()) {
-        ThrowException(Exception::TypeError(String::New("Expected targetAudioFormat to be an object")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected targetAudioFormat to be an object");
+        NanReturnUndefined();
     }
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args[0]->ToObject());
@@ -232,33 +237,35 @@ Handle<Value> GNEncoder::Attach(const Arguments& args) {
     AttachReq *request = new AttachReq;
 
     request->req.data = request;
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
-    request->instance = Persistent<Object>::New(args.This());
+    request->callback = new NanCallback(args[1].As<Function>());
+
+    NanAssignPersistent(request->instance, args.This());
+
     request->playlist = gn_playlist->playlist;
     request->event_context = gn_encoder->event_context;
     GrooveEncoder *encoder = gn_encoder->encoder;
     request->encoder = encoder;
 
     // copy the properties from our instance to the encoder
-    Local<Value> formatShortName = instance->Get(String::NewSymbol("formatShortName"));
+    Local<Value> formatShortName = instance->Get(NanNew<String>("formatShortName"));
     if (formatShortName->IsNull() || formatShortName->IsUndefined()) {
         request->format_short_name = NULL;
     } else {
         request->format_short_name = new String::Utf8Value(formatShortName->ToString());
     }
-    Local<Value> codecShortName = instance->Get(String::NewSymbol("codecShortName"));
+    Local<Value> codecShortName = instance->Get(NanNew<String>("codecShortName"));
     if (codecShortName->IsNull() || codecShortName->IsUndefined()) {
         request->codec_short_name = NULL;
     } else {
         request->codec_short_name = new String::Utf8Value(codecShortName->ToString());
     }
-    Local<Value> filenameStr = instance->Get(String::NewSymbol("filename"));
+    Local<Value> filenameStr = instance->Get(NanNew<String>("filename"));
     if (filenameStr->IsNull() || filenameStr->IsUndefined()) {
         request->filename = NULL;
     } else {
         request->filename = new String::Utf8Value(filenameStr->ToString());
     }
-    Local<Value> mimeType = instance->Get(String::NewSymbol("mimeType"));
+    Local<Value> mimeType = instance->Get(NanNew<String>("mimeType"));
     if (mimeType->IsNull() || mimeType->IsUndefined()) {
         request->mime_type = NULL;
     } else {
@@ -266,33 +273,33 @@ Handle<Value> GNEncoder::Attach(const Arguments& args) {
     }
 
     Local<Object> targetAudioFormat = targetAudioFormatValue->ToObject();
-    Local<Value> sampleRate = targetAudioFormat->Get(String::NewSymbol("sampleRate"));
+    Local<Value> sampleRate = targetAudioFormat->Get(NanNew<String>("sampleRate"));
     double sample_rate = sampleRate->NumberValue();
-    double channel_layout = targetAudioFormat->Get(String::NewSymbol("channelLayout"))->NumberValue();
-    double sample_fmt = targetAudioFormat->Get(String::NewSymbol("sampleFormat"))->NumberValue();
+    double channel_layout = targetAudioFormat->Get(NanNew<String>("channelLayout"))->NumberValue();
+    double sample_fmt = targetAudioFormat->Get(NanNew<String>("sampleFormat"))->NumberValue();
     encoder->target_audio_format.sample_rate = (int)sample_rate;
     encoder->target_audio_format.channel_layout = (int)channel_layout;
     encoder->target_audio_format.sample_fmt = (enum GrooveSampleFormat)(int)sample_fmt;
 
-    double bit_rate = instance->Get(String::NewSymbol("bitRate"))->NumberValue();
+    double bit_rate = instance->Get(NanNew<String>("bitRate"))->NumberValue();
     encoder->bit_rate = (int)bit_rate;
 
-    double sink_buffer_size = instance->Get(String::NewSymbol("sinkBufferSize"))->NumberValue();
+    double sink_buffer_size = instance->Get(NanNew<String>("sinkBufferSize"))->NumberValue();
     encoder->sink_buffer_size = (int)sink_buffer_size;
 
-    double encoded_buffer_size = instance->Get(String::NewSymbol("encodedBufferSize"))->NumberValue();
+    double encoded_buffer_size = instance->Get(NanNew<String>("encodedBufferSize"))->NumberValue();
     encoder->encoded_buffer_size = (int)encoded_buffer_size;
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
 struct DetachReq {
     uv_work_t req;
     GrooveEncoder *encoder;
-    Persistent<Function> callback;
+    NanCallback *callback;
     int errcode;
     GNEncoder::EventContext *event_context;
 };
@@ -312,19 +319,20 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(String::New("encoder detach failed"));
+        argv[0] = Exception::Error(NanNew<String>("encoder detach failed"));
     } else {
-        argv[0] = Null();
+        argv[0] = NanNull();
     }
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -332,33 +340,33 @@ static void DetachAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNEncoder::Detach(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::Detach) {
+    NanScope();
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     GrooveEncoder *encoder = gn_encoder->encoder;
 
     if (!encoder->playlist) {
-        ThrowException(Exception::Error(String::New("detach: not attached")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("detach: not attached");
+        NanReturnUndefined();
     }
 
     DetachReq *request = new DetachReq;
 
     request->req.data = request;
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->callback = new NanCallback(args[0].As<Function>());
     request->encoder = encoder;
     request->event_context = gn_encoder->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
 static void buffer_free(char *data, void *hint) {
@@ -366,45 +374,45 @@ static void buffer_free(char *data, void *hint) {
     groove_buffer_unref(buffer);
 }
 
-Handle<Value> GNEncoder::GetBuffer(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::GetBuffer) {
+    NanScope();
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
     GrooveEncoder *encoder = gn_encoder->encoder;
 
     GrooveBuffer *buffer;
     switch (groove_encoder_buffer_get(encoder, &buffer, 0)) {
         case GROOVE_BUFFER_YES: {
-            Local<Object> object = Object::New();
+            Local<Object> object = NanNew<Object>();
 
-            Handle<Object> bufferObject = node::Buffer::New(
+            Local<Object> bufferObject = NanNewBufferHandle(
                     reinterpret_cast<char*>(buffer->data[0]), buffer->size,
-                    buffer_free, buffer)->handle_;
-            object->Set(String::NewSymbol("buffer"), bufferObject);
+                    buffer_free, buffer);
+            object->Set(NanNew<String>("buffer"), bufferObject);
 
             if (buffer->item) {
-                object->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(buffer->item));
+                object->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(buffer->item));
             } else {
-                object->Set(String::NewSymbol("item"), Null());
+                object->Set(NanNew<String>("item"), NanNull());
             }
-            object->Set(String::NewSymbol("pos"), Number::New(buffer->pos));
-            object->Set(String::NewSymbol("pts"), Number::New(buffer->pts));
-            return scope.Close(object);
+            object->Set(NanNew<String>("pos"), NanNew<Number>(buffer->pos));
+            object->Set(NanNew<String>("pts"), NanNew<Number>(buffer->pts));
+            NanReturnValue(object);
         }
         case GROOVE_BUFFER_END: {
-            Local<Object> object = Object::New();
-            object->Set(String::NewSymbol("buffer"), Null());
-            object->Set(String::NewSymbol("item"), Null());
-            object->Set(String::NewSymbol("pos"), Null());
-            object->Set(String::NewSymbol("pts"), Null());
-            return scope.Close(object);
+            Local<Object> object = NanNew<Object>();
+            object->Set(NanNew<String>("buffer"), NanNull());
+            object->Set(NanNew<String>("item"), NanNull());
+            object->Set(NanNew<String>("pos"), NanNull());
+            object->Set(NanNew<String>("pts"), NanNull());
+            NanReturnValue(object);
         }
         default:
-            return scope.Close(Null());
+            NanReturnNull();
     }
 }
 
-Handle<Value> GNEncoder::Position(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNEncoder::Position) {
+    NanScope();
 
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(args.This());
     GrooveEncoder *encoder = gn_encoder->encoder;
@@ -413,12 +421,13 @@ Handle<Value> GNEncoder::Position(const Arguments& args) {
     double pos;
     groove_encoder_position(encoder, &item, &pos);
 
-    Local<Object> obj = Object::New();
-    obj->Set(String::NewSymbol("pos"), Number::New(pos));
+    Local<Object> obj = NanNew<Object>();
+    obj->Set(NanNew<String>("pos"), NanNew<Number>(pos));
     if (item) {
-        obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+        obj->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(item));
     } else {
-        obj->Set(String::NewSymbol("item"), Null());
+        obj->Set(NanNew<String>("item"), NanNull());
     }
-    return scope.Close(obj);
+
+    NanReturnValue(obj);
 }

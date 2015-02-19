@@ -1,28 +1,28 @@
 #include <node.h>
-#include "gn_file.h"
+#include "file.h"
 
 using namespace v8;
 
 GNFile::GNFile() {};
 GNFile::~GNFile() {};
 
-Persistent<Function> GNFile::constructor;
+static v8::Persistent<v8::FunctionTemplate> constructor;
 
 template <typename target_t, typename func_t>
 static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(String::New(name), fn);
+    tpl->PrototypeTemplate()->SetAccessor(NanNew<String>(name), fn);
 }
 
 template <typename target_t, typename func_t>
 static void AddMethod(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->Set(String::NewSymbol(name),
-            FunctionTemplate::New(fn)->GetFunction());
+    tpl->PrototypeTemplate()->Set(NanNew<String>(name),
+            NanNew<FunctionTemplate>(fn)->GetFunction());
 }
 
 void GNFile::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-    tpl->SetClassName(String::NewSymbol("GrooveFile"));
+    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+    tpl->SetClassName(NanNew<String>("GrooveFile"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
     // Fields
     AddGetter(tpl, "filename", GetFilename);
@@ -37,64 +37,65 @@ void GNFile::Init() {
     AddMethod(tpl, "save", Save);
     AddMethod(tpl, "duration", Duration);
 
-    constructor = Persistent<Function>::New(tpl->GetFunction());
+    NanAssignPersistent(constructor, tpl);
 }
 
-Handle<Value> GNFile::New(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::New) {
+    NanScope();
 
     GNFile *obj = new GNFile();
     obj->Wrap(args.This());
     
-    return scope.Close(args.This());
+    NanReturnValue(args.This());
 }
 
 Handle<Value> GNFile::NewInstance(GrooveFile *file) {
-    HandleScope scope;
+    NanEscapableScope();
 
-    Local<Object> instance = constructor->NewInstance();
+    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
+    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(instance);
     gn_file->file = file;
 
-    return scope.Close(instance);
+    return NanEscapeScope(instance);
 }
 
-Handle<Value> GNFile::GetDirty(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
-    return scope.Close(Boolean::New(gn_file->file->dirty));
+NAN_GETTER(GNFile::GetDirty) {
+    NanScope();
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+    NanReturnValue(NanNew<Boolean>(gn_file->file->dirty));
 }
 
-Handle<Value> GNFile::GetId(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
+NAN_GETTER(GNFile::GetId) {
+    NanScope();
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_file->file);
-    return scope.Close(String::New(buf));
+    NanReturnValue(NanNew<String>(buf));
 }
 
-Handle<Value> GNFile::GetFilename(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
-    return scope.Close(String::New(gn_file->file->filename));
+NAN_GETTER(GNFile::GetFilename) {
+    NanScope();
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
+    NanReturnValue(NanNew<String>(gn_file->file->filename));
 }
 
-Handle<Value> GNFile::GetMetadata(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::GetMetadata) {
+    NanScope();
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsString()) {
-        ThrowException(Exception::TypeError(String::New("Expected string arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected string arg[0]");
+        NanReturnUndefined();
     }
 
     int flags = 0;
     if (args.Length() >= 2) {
         if (!args[1]->IsNumber()) {
-            ThrowException(Exception::TypeError(String::New("Expected number arg[1]")));
-            return scope.Close(Undefined());
+            NanThrowTypeError("Expected number arg[1]");
+            NanReturnUndefined();
         }
         flags = (int)args[1]->NumberValue();
     }
@@ -102,30 +103,31 @@ Handle<Value> GNFile::GetMetadata(const Arguments& args) {
     String::Utf8Value key_str(args[0]->ToString());
     GrooveTag *tag = groove_file_metadata_get(gn_file->file, *key_str, NULL, flags);
     if (tag)
-        return scope.Close(String::New(groove_tag_value(tag)));
-    return scope.Close(Null());
+        NanReturnValue(NanNew<String>(groove_tag_value(tag)));
+
+    NanReturnNull();
 }
 
-Handle<Value> GNFile::SetMetadata(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::SetMetadata) {
+    NanScope();
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsString()) {
-        ThrowException(Exception::TypeError(String::New("Expected string arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected string arg[0]");
+        NanReturnUndefined();
     }
 
     if (args.Length() < 2 || !args[0]->IsString()) {
-        ThrowException(Exception::TypeError(String::New("Expected string arg[1]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected string arg[1]");
+        NanReturnUndefined();
     }
 
     int flags = 0;
     if (args.Length() >= 3) {
         if (!args[2]->IsNumber()) {
-            ThrowException(Exception::TypeError(String::New("Expected number arg[2]")));
-            return scope.Close(Undefined());
+            NanThrowTypeError("Expected number arg[2]");
+            NanReturnUndefined();
         }
         flags = (int)args[2]->NumberValue();
     }
@@ -134,39 +136,40 @@ Handle<Value> GNFile::SetMetadata(const Arguments& args) {
     String::Utf8Value val_str(args[1]->ToString());
     int err = groove_file_metadata_set(gn_file->file, *key_str, *val_str, flags);
     if (err < 0) {
-        ThrowException(Exception::Error(String::New("set metadata failed")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("set metadata failed");
+        NanReturnUndefined();
     }
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
-Handle<Value> GNFile::Metadata(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::Metadata) {
+    NanScope();
+
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
-    Local<Object> metadata = Object::New();
+    Local<Object> metadata = NanNew<Object>();
 
     GrooveTag *tag = NULL;
     while ((tag = groove_file_metadata_get(gn_file->file, "", tag, 0)))
-        metadata->Set(String::New(groove_tag_key(tag)), String::New(groove_tag_value(tag)));
+        metadata->Set(NanNew<String>(groove_tag_key(tag)), NanNew<String>(groove_tag_value(tag)));
 
-    return scope.Close(metadata);
+    NanReturnValue(metadata);
 }
 
-Handle<Value> GNFile::ShortNames(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::ShortNames) {
+    NanScope();
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
-    return scope.Close(String::New(groove_file_short_names(gn_file->file)));
+    NanReturnValue(NanNew<String>(groove_file_short_names(gn_file->file)));
 }
 
-Handle<Value> GNFile::Duration(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::Duration) {
+    NanScope();
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
-    return scope.Close(Number::New(groove_file_duration(gn_file->file)));
+    NanReturnValue(NanNew<Number>(groove_file_duration(gn_file->file)));
 }
 
 struct CloseReq {
     uv_work_t req;
-    Persistent<Function> callback;
+    NanCallback *callback;
     GrooveFile *file;
 };
 
@@ -178,20 +181,22 @@ static void CloseAsync(uv_work_t *req) {
 }
 
 static void CloseAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
+
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->file) {
-        argv[0] = Null();
+        argv[0] = NanNull();
     } else {
-        argv[0] = Exception::Error(String::New("file already closed"));
+        argv[0] = Exception::Error(NanNew<String>("file already closed"));
     }
 
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -199,32 +204,33 @@ static void CloseAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNFile::Close(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::Close) {
+    NanScope();
+
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     CloseReq *request = new CloseReq;
 
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->callback = new NanCallback(args[0].As<Function>());
     request->file = gn_file->file;
     request->req.data = request;
 
     gn_file->file = NULL;
     uv_queue_work(uv_default_loop(), &request->req, CloseAsync, (uv_after_work_cb)CloseAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
 struct OpenReq {
     uv_work_t req;
     GrooveFile *file;
     String::Utf8Value *filename;
-    Persistent<Function> callback;
+    NanCallback *callback;
 };
 
 static void OpenAsync(uv_work_t *req) {
@@ -233,22 +239,23 @@ static void OpenAsync(uv_work_t *req) {
 }
 
 static void OpenAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
     OpenReq *r = reinterpret_cast<OpenReq *>(req->data);
 
     Handle<Value> argv[2];
     if (r->file) {
-        argv[0] = Null();
+        argv[0] = NanNull();
         argv[1] = GNFile::NewInstance(r->file);
     } else {
-        argv[0] = Exception::Error(String::New("open file failed"));
-        argv[1] = Null();
+        argv[0] = Exception::Error(NanNew<String>("open file failed"));
+        argv[1] = NanNull();
     }
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), 2, argv);
+    r->callback->Call(2, argv);
 
     // cleanup
     delete r->filename;
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -256,31 +263,31 @@ static void OpenAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNFile::Open(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::Open) {
+    NanScope();
 
     if (args.Length() < 1 || !args[0]->IsString()) {
-        ThrowException(Exception::TypeError(String::New("Expected string arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected string arg[0]");
+        NanReturnUndefined();
     }
     if (args.Length() < 2 || !args[1]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[1]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[1]");
+        NanReturnUndefined();
     }
     OpenReq *request = new OpenReq;
 
     request->filename = new String::Utf8Value(args[0]->ToString());
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
+    request->callback = new NanCallback(args[1].As<Function>());
     request->req.data = request;
 
     uv_queue_work(uv_default_loop(), &request->req, OpenAsync, (uv_after_work_cb)OpenAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
 struct SaveReq {
     uv_work_t req;
-    Persistent<Function> callback;
+    NanCallback *callback;
     GrooveFile *file;
     int ret;
 };
@@ -291,19 +298,21 @@ static void SaveAsync(uv_work_t *req) {
 }
 
 static void SaveAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
+
     SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->ret < 0) {
-        argv[0] = Exception::Error(String::New("save failed"));
+        argv[0] = Exception::Error(NanNew<String>("save failed"));
     } else {
-        argv[0] = Null();
+        argv[0] = NanNull();
     }
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -311,22 +320,23 @@ static void SaveAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNFile::Save(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNFile::Save) {
+    NanScope();
+
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     SaveReq *request = new SaveReq;
 
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->callback = new NanCallback(args[0].As<Function>());
     request->file = gn_file->file;
     request->req.data = request;
 
     uv_queue_work(uv_default_loop(), &request->req, SaveAsync, (uv_after_work_cb)SaveAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }

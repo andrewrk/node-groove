@@ -1,33 +1,34 @@
 #include <node.h>
-#include "gn_player.h"
-#include "gn_playlist.h"
-#include "gn_playlist_item.h"
+#include "player.h"
+#include "playlist.h"
+#include "playlist_item.h"
 
 using namespace v8;
 
 GNPlayer::GNPlayer() {};
 GNPlayer::~GNPlayer() {
     groove_player_destroy(player);
+    delete event_context->event_cb;
     delete event_context;
 };
 
-Persistent<Function> GNPlayer::constructor;
+static v8::Persistent<v8::FunctionTemplate> constructor;
 
 template <typename target_t, typename func_t>
 static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol(name), fn);
+    tpl->PrototypeTemplate()->SetAccessor(NanNew<String>(name), fn);
 }
 
 template <typename target_t, typename func_t>
 static void AddMethod(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->Set(String::NewSymbol(name),
-            FunctionTemplate::New(fn)->GetFunction());
+    tpl->PrototypeTemplate()->Set(NanNew<String>(name),
+            NanNew<FunctionTemplate>(fn)->GetFunction());
 }
 
 void GNPlayer::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-    tpl->SetClassName(String::NewSymbol("GroovePlayer"));
+    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+    tpl->SetClassName(NanNew<String>("GroovePlayer"));
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
     // Fields
     AddGetter(tpl, "id", GetId);
@@ -37,69 +38,68 @@ void GNPlayer::Init() {
     AddMethod(tpl, "detach", Detach);
     AddMethod(tpl, "position", Position);
 
-    constructor = Persistent<Function>::New(tpl->GetFunction());
+    NanAssignPersistent(constructor, tpl);
 }
 
-Handle<Value> GNPlayer::New(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNPlayer::New) {
+    NanScope();
 
     GNPlayer *obj = new GNPlayer();
     obj->Wrap(args.This());
     
-    return scope.Close(args.This());
+    NanReturnValue(args.This());
 }
 
 Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
-    HandleScope scope;
+    NanEscapableScope();
 
-    Local<Object> instance = constructor->NewInstance();
+    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
+    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
 
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     gn_player->player = player;
 
-    return scope.Close(instance);
+    return NanEscapeScope(instance);
 }
 
-Handle<Value> GNPlayer::GetId(Local<String> property, const AccessorInfo &info) {
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
+NAN_GETTER(GNPlayer::GetId) {
+    NanScope();
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_player->player);
-    return scope.Close(String::New(buf));
+    NanReturnValue(NanNew<String>(buf));
 }
 
-Handle<Value> GNPlayer::GetPlaylist(Local<String> property,
-        const AccessorInfo &info)
-{
-    HandleScope scope;
-    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
+NAN_GETTER(GNPlayer::GetPlaylist) {
+    NanScope();
+    GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     GroovePlaylist *playlist = gn_player->player->playlist;
     if (playlist) {
-        return scope.Close(GNPlaylist::NewInstance(playlist));
+        NanReturnValue(GNPlaylist::NewInstance(playlist));
     } else {
-        return scope.Close(Null());
+        NanReturnNull();
     }
 }
 
-Handle<Value> GNPlayer::Position(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNPlayer::Position) {
+    NanScope();
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
     GroovePlaylistItem *item;
     double pos;
     groove_player_position(gn_player->player, &item, &pos);
-    Local<Object> obj = Object::New();
-    obj->Set(String::NewSymbol("pos"), Number::New(pos));
+    Local<Object> obj = NanNew<Object>();
+    obj->Set(NanNew<String>("pos"), NanNew<Number>(pos));
     if (item) {
-        obj->Set(String::NewSymbol("item"), GNPlaylistItem::NewInstance(item));
+        obj->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(item));
     } else {
-        obj->Set(String::NewSymbol("item"), Null());
+        obj->Set(NanNew<String>("item"), NanNull());
     }
-    return scope.Close(obj);
+    NanReturnValue(obj);
 }
 
 struct AttachReq {
     uv_work_t req;
-    Persistent<Function> callback;
+    NanCallback *callback;
     GroovePlayer *player;
     GroovePlaylist *playlist;
     int errcode;
@@ -108,8 +108,8 @@ struct AttachReq {
     GNPlayer::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle, int status) {
-    HandleScope scope;
+static void EventAsyncCb(uv_async_t *handle) {
+    NanScope();
 
     GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
 
@@ -119,10 +119,10 @@ static void EventAsyncCb(uv_async_t *handle, int status) {
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     while (groove_player_event_get(context->player, &event, 0) > 0) {
-        argv[0] = Number::New(event.type);
+        argv[0] = NanNew<Number>(event.type);
 
         TryCatch try_catch;
-        context->event_cb->Call(Context::GetCurrent()->Global(), argc, argv);
+        context->event_cb->Call(argc, argv);
 
         if (try_catch.HasCaught()) {
             node::FatalException(try_catch);
@@ -162,30 +162,34 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(String::New("player attach failed"));
+        argv[0] = Exception::Error(NanNew<String>("player attach failed"));
     } else {
-        argv[0] = Null();
+        argv[0] = NanNull();
 
-        Local<Object> actualAudioFormat = Object::New();
-        actualAudioFormat->Set(String::NewSymbol("sampleRate"),
-                Number::New(r->player->actual_audio_format.sample_rate));
-        actualAudioFormat->Set(String::NewSymbol("channelLayout"),
-                Number::New(r->player->actual_audio_format.channel_layout));
-        actualAudioFormat->Set(String::NewSymbol("sampleFormat"),
-                Number::New(r->player->actual_audio_format.sample_fmt));
+        Local<Object> actualAudioFormat = NanNew<Object>();
+        actualAudioFormat->Set(NanNew<String>("sampleRate"),
+                NanNew<Number>(r->player->actual_audio_format.sample_rate));
+        actualAudioFormat->Set(NanNew<String>("channelLayout"),
+                NanNew<Number>(r->player->actual_audio_format.channel_layout));
+        actualAudioFormat->Set(NanNew<String>("sampleFormat"),
+                NanNew<Number>(r->player->actual_audio_format.sample_fmt));
 
-        r->instance->Set(String::NewSymbol("actualAudioFormat"), actualAudioFormat);
+        Local<Object> o = NanNew(r->instance);
+        o->Set(NanNew<String>("actualAudioFormat"), actualAudioFormat);
+        NanAssignPersistent(r->instance, o);
     }
 
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    NanDisposePersistent(r->instance);
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -193,12 +197,12 @@ static void AttachAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNPlayer::Create(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNPlayer::Create) {
+    NanScope();
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     GroovePlayer *player = groove_player_create();
@@ -206,49 +210,49 @@ Handle<Value> GNPlayer::Create(const Arguments& args) {
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     EventContext *context = new EventContext;
     gn_player->event_context = context;
-    context->event_cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    context->event_cb = new NanCallback(args[0].As<Function>());
     context->player = player;
 
     // set properties on the instance with default values from
     // GroovePlayer struct
-    Local<Object> targetAudioFormat = Object::New();
-    targetAudioFormat->Set(String::NewSymbol("sampleRate"),
-            Number::New(player->target_audio_format.sample_rate));
-    targetAudioFormat->Set(String::NewSymbol("channelLayout"),
-            Number::New(player->target_audio_format.channel_layout));
-    targetAudioFormat->Set(String::NewSymbol("sampleFormat"),
-            Number::New(player->target_audio_format.sample_fmt));
+    Local<Object> targetAudioFormat = NanNew<Object>();
+    targetAudioFormat->Set(NanNew<String>("sampleRate"),
+            NanNew<Number>(player->target_audio_format.sample_rate));
+    targetAudioFormat->Set(NanNew<String>("channelLayout"),
+            NanNew<Number>(player->target_audio_format.channel_layout));
+    targetAudioFormat->Set(NanNew<String>("sampleFormat"),
+            NanNew<Number>(player->target_audio_format.sample_fmt));
 
-    instance->Set(String::NewSymbol("deviceIndex"), Null());
-    instance->Set(String::NewSymbol("actualAudioFormat"), Null());
-    instance->Set(String::NewSymbol("targetAudioFormat"), targetAudioFormat);
-    instance->Set(String::NewSymbol("deviceBufferSize"),
-            Number::New(player->device_buffer_size));
-    instance->Set(String::NewSymbol("sinkBufferSize"),
-            Number::New(player->sink_buffer_size));
+    instance->Set(NanNew<String>("deviceIndex"), NanNull());
+    instance->Set(NanNew<String>("actualAudioFormat"), NanNull());
+    instance->Set(NanNew<String>("targetAudioFormat"), targetAudioFormat);
+    instance->Set(NanNew<String>("deviceBufferSize"),
+            NanNew<Number>(player->device_buffer_size));
+    instance->Set(NanNew<String>("sinkBufferSize"),
+            NanNew<Number>(player->sink_buffer_size));
 
-    return scope.Close(instance);
+    NanReturnValue(instance);
 }
 
-Handle<Value> GNPlayer::Attach(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNPlayer::Attach) {
+    NanScope();
 
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsObject()) {
-        ThrowException(Exception::TypeError(String::New("Expected object arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected object arg[0]");
+        NanReturnUndefined();
     }
     if (args.Length() < 2 || !args[1]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[1]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[1]");
+        NanReturnUndefined();
     }
 
     Local<Object> instance = args.This();
-    Local<Value> targetAudioFormatValue = instance->Get(String::NewSymbol("targetAudioFormat"));
+    Local<Value> targetAudioFormatValue = instance->Get(NanNew<String>("targetAudioFormat"));
     if (!targetAudioFormatValue->IsObject()) {
-        ThrowException(Exception::TypeError(String::New("Expected targetAudioFormat to be an object")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected targetAudioFormat to be an object");
+        NanReturnUndefined();
     }
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args[0]->ToObject());
@@ -256,15 +260,17 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
     AttachReq *request = new AttachReq;
 
     request->req.data = request;
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[1]));
-    request->instance = Persistent<Object>::New(args.This());
+    request->callback = new NanCallback(args[1].As<Function>());
+
+    NanAssignPersistent(request->instance, args.This());
+
     request->playlist = gn_playlist->playlist;
     GroovePlayer *player = gn_player->player;
     request->player = player;
     request->event_context = gn_player->event_context;
 
     // copy the properties from our instance to the player
-    Local<Value> deviceIndex = instance->Get(String::NewSymbol("deviceIndex"));
+    Local<Value> deviceIndex = instance->Get(NanNew<String>("deviceIndex"));
 
     if (deviceIndex->IsNull() || deviceIndex->IsUndefined()) {
         request->device_index = -1;
@@ -272,30 +278,30 @@ Handle<Value> GNPlayer::Attach(const Arguments& args) {
         request->device_index = (int) deviceIndex->NumberValue();
     }
     Local<Object> targetAudioFormat = targetAudioFormatValue->ToObject();
-    Local<Value> sampleRate = targetAudioFormat->Get(String::NewSymbol("sampleRate"));
+    Local<Value> sampleRate = targetAudioFormat->Get(NanNew<String>("sampleRate"));
     double sample_rate = sampleRate->NumberValue();
-    double channel_layout = targetAudioFormat->Get(String::NewSymbol("channelLayout"))->NumberValue();
-    double sample_fmt = targetAudioFormat->Get(String::NewSymbol("sampleFormat"))->NumberValue();
+    double channel_layout = targetAudioFormat->Get(NanNew<String>("channelLayout"))->NumberValue();
+    double sample_fmt = targetAudioFormat->Get(NanNew<String>("sampleFormat"))->NumberValue();
     player->target_audio_format.sample_rate = (int)sample_rate;
     player->target_audio_format.channel_layout = (int)channel_layout;
     player->target_audio_format.sample_fmt = (enum GrooveSampleFormat)(int)sample_fmt;
 
-    double device_buffer_size = instance->Get(String::NewSymbol("deviceBufferSize"))->NumberValue();
+    double device_buffer_size = instance->Get(NanNew<String>("deviceBufferSize"))->NumberValue();
     player->device_buffer_size = (int)device_buffer_size;
 
-    double sink_buffer_size = instance->Get(String::NewSymbol("sinkBufferSize"))->NumberValue();
+    double sink_buffer_size = instance->Get(NanNew<String>("sinkBufferSize"))->NumberValue();
     player->sink_buffer_size = (int)sink_buffer_size;
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }
 
 struct DetachReq {
     uv_work_t req;
     GroovePlayer *player;
-    Persistent<Function> callback;
+    NanCallback *callback;
     int errcode;
     GNPlayer::EventContext *event_context;
 };
@@ -314,19 +320,20 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    HandleScope scope;
+    NanScope();
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
     Handle<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(String::New("player detach failed"));
+        argv[0] = Exception::Error(NanNew<String>("player detach failed"));
     } else {
-        argv[0] = Null();
+        argv[0] = NanNull();
     }
     TryCatch try_catch;
-    r->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    r->callback->Call(argc, argv);
 
+    delete r->callback;
     delete r;
 
     if (try_catch.HasCaught()) {
@@ -334,24 +341,24 @@ static void DetachAfter(uv_work_t *req) {
     }
 }
 
-Handle<Value> GNPlayer::Detach(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(GNPlayer::Detach) {
+    NanScope();
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(args.This());
 
     if (args.Length() < 1 || !args[0]->IsFunction()) {
-        ThrowException(Exception::TypeError(String::New("Expected function arg[0]")));
-        return scope.Close(Undefined());
+        NanThrowTypeError("Expected function arg[0]");
+        NanReturnUndefined();
     }
 
     DetachReq *request = new DetachReq;
 
     request->req.data = request;
-    request->callback = Persistent<Function>::New(Local<Function>::Cast(args[0]));
+    request->callback = new NanCallback(args[0].As<Function>());
     request->player = gn_player->player;
     request->event_context = gn_player->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
 
-    return scope.Close(Undefined());
+    NanReturnUndefined();
 }

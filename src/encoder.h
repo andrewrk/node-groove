@@ -2,7 +2,7 @@
 #define GN_ENCODER_H
 
 #include <node.h>
-
+#include <nan.h>
 #include <groove/encoder.h>
 
 class GNEncoder : public node::ObjectWrap {
@@ -10,7 +10,7 @@ class GNEncoder : public node::ObjectWrap {
         static void Init();
         static v8::Handle<v8::Value> NewInstance(GrooveEncoder *encoder);
 
-        static v8::Handle<v8::Value> Create(const v8::Arguments& args);
+        static NAN_METHOD(Create);
 
         struct EventContext {
             uv_thread_t event_thread;
@@ -18,7 +18,7 @@ class GNEncoder : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GrooveEncoder *encoder;
-            v8::Persistent<v8::Function> event_cb;
+            NanCallback *event_cb;
         };
 
         GrooveEncoder *encoder;
@@ -27,13 +27,12 @@ class GNEncoder : public node::ObjectWrap {
         GNEncoder();
         ~GNEncoder();
 
-        static v8::Persistent<v8::Function> constructor;
-        static v8::Handle<v8::Value> New(const v8::Arguments& args);
+        static NAN_METHOD(New);
 
-        static v8::Handle<v8::Value> Attach(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Detach(const v8::Arguments& args);
-        static v8::Handle<v8::Value> GetBuffer(const v8::Arguments& args);
-        static v8::Handle<v8::Value> Position(const v8::Arguments& args);
+        static NAN_METHOD(Attach);
+        static NAN_METHOD(Detach);
+        static NAN_METHOD(GetBuffer);
+        static NAN_METHOD(Position);
 };
 
 #endif
