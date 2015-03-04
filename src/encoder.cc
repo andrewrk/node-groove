@@ -69,7 +69,12 @@ struct AttachReq {
     GNEncoder::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle) {
+static void EventAsyncCb(uv_async_t *handle
+#if UV_VERSION_MAJOR == 0
+        , int status
+#endif
+        )
+{
     NanScope();
 
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);

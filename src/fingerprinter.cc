@@ -153,7 +153,12 @@ struct AttachReq {
     GNFingerprinter::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle) {
+static void EventAsyncCb(uv_async_t *handle
+#if UV_VERSION_MAJOR == 0
+        , int status
+#endif
+        )
+{
     NanScope();
 
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(handle->data);
