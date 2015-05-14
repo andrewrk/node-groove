@@ -99,7 +99,10 @@ static void EventThreadEntry(void *arg) {
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(arg);
     while (groove_encoder_buffer_peek(context->encoder, 1) > 0) {
         uv_mutex_lock(&context->mutex);
-        uv_async_send(&context->event_async);
+        if (context->emit_buffer_ok) {
+            context->emit_buffer_ok = false;
+            uv_async_send(&context->event_async);
+        }
         uv_cond_wait(&context->cond, &context->mutex);
         uv_mutex_unlock(&context->mutex);
     }
@@ -190,6 +193,7 @@ NAN_METHOD(GNEncoder::Create) {
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
     EventContext *context = new EventContext;
     gn_encoder->event_context = context;
+    context->emit_buffer_ok = true;
     context->event_cb = new NanCallback(args[0].As<Function>());
     context->encoder = encoder;
 
@@ -385,7 +389,14 @@ NAN_METHOD(GNEncoder::GetBuffer) {
     GrooveEncoder *encoder = gn_encoder->encoder;
 
     GrooveBuffer *buffer;
-    switch (groove_encoder_buffer_get(encoder, &buffer, 0)) {
+    int buf_result = groove_encoder_buffer_get(encoder, &buffer, 0);
+
+    uv_mutex_lock(&gn_encoder->event_context->mutex);
+    gn_encoder->event_context->emit_buffer_ok = true;
+    uv_cond_signal(&gn_encoder->event_context->cond);
+    uv_mutex_unlock(&gn_encoder->event_context->mutex);
+
+    switch (buf_result) {
         case GROOVE_BUFFER_YES: {
             Local<Object> object = NanNew<Object>();
 
@@ -401,6 +412,7 @@ NAN_METHOD(GNEncoder::GetBuffer) {
             }
             object->Set(NanNew<String>("pos"), NanNew<Number>(buffer->pos));
             object->Set(NanNew<String>("pts"), NanNew<Number>(buffer->pts));
+
             NanReturnValue(object);
         }
         case GROOVE_BUFFER_END: {
@@ -409,6 +421,7 @@ NAN_METHOD(GNEncoder::GetBuffer) {
             object->Set(NanNew<String>("item"), NanNull());
             object->Set(NanNew<String>("pos"), NanNull());
             object->Set(NanNew<String>("pts"), NanNull());
+
             NanReturnValue(object);
         }
         default:
