@@ -14,12 +14,12 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "mocha": "~2.1.0",
-    "ncp": "~1.0.1"
+    "mocha": "~2.2.5",
+    "ncp": "~2.0.0"
   },
   "dependencies": {
     "bindings": "~1.2.1",
-    "nan": "~1.6.2"
+    "nan": "~1.8.4"
   },
   "gypfile": true,
   "bugs": {
