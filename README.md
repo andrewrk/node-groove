@@ -7,7 +7,10 @@ Live discussion in `#libgroove` on [freenode](https://freenode.net/).
 
 ## Usage
 
-1. Install libgroove to your system.
+1. Install libgroove to your system. libgroove is a set of 4 libraries;
+   node-groove depends on all of them. So for example on ubuntu, make sure to
+   install libgroove-dev, libgrooveplayer-dev, libgrooveloudness-dev, and
+   libgroovefingerprinter-dev.
 2. `npm install --save groove`
 
 ### Get Metadata from File
