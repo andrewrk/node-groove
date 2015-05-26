@@ -83,6 +83,7 @@ void Initialize(Handle<Object> exports) {
 
     SetProperty(exports, "_EVENT_NOWPLAYING", GROOVE_EVENT_NOWPLAYING);
     SetProperty(exports, "_EVENT_BUFFERUNDERRUN", GROOVE_EVENT_BUFFERUNDERRUN);
+    SetProperty(exports, "_EVENT_DEVICEREOPENED", GROOVE_EVENT_DEVICEREOPENED);
 
     SetMethod(exports, "setLogging", SetLogging);
     SetMethod(exports, "getDevices", GetDevices);

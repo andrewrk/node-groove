@@ -8,6 +8,11 @@ if (process.argv.length < 3) usage();
 
 var playlist = groove.createPlaylist();
 var player = groove.createPlayer();
+player.useExactAudioFormat = true;
+
+player.on('devicereopened', function() {
+  console.log("Device re-opened");
+});
 
 player.on('nowplaying', function() {
   var current = player.position();

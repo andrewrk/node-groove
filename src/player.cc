@@ -277,6 +277,9 @@ NAN_METHOD(GNPlayer::Attach) {
     // copy the properties from our instance to the player
     Local<Value> deviceIndex = instance->Get(NanNew<String>("deviceIndex"));
 
+    Local<Value> useExactAudioFormat = instance->Get(NanNew<String>("useExactAudioFormat"));
+    player->use_exact_audio_format = useExactAudioFormat->BooleanValue();
+
     if (deviceIndex->IsNull() || deviceIndex->IsUndefined()) {
         request->device_index = -1;
     } else {

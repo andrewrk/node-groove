@@ -307,6 +307,13 @@ must be a power of 2.
 How big the sink buffer should be, in sample frames.
 `groove.createPlayer()` defaults this to 8192
 
+#### player.useExactAudioFormat
+
+If you set this to `true`, `targetAudioFormat` and `actualAudioFormat` are
+ignored and no resampling, channel layout remapping, or sample format
+conversion will occur. The audio device will be reopened with exact parameters
+whenever necessary.
+
 #### player.attach(playlist, callback)
 
 Sends audio to sound device.
@@ -331,6 +338,13 @@ Fires when the item that is now playing changes. It can be `null`.
 #### player.on('bufferunderrun', handler)
 
 Fires when a buffer underrun occurs. Ideally you'll never see this.
+
+`handler()`
+
+#### player.on('devicereopened', handler)
+
+Fires when you have set `useExactAudioFormat` to `true` and the audio device
+has been closed and re-opened to match incoming audio data.
 
 `handler()`
 
