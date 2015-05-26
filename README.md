@@ -13,6 +13,11 @@ Live discussion in `#libgroove` on [freenode](https://freenode.net/).
    libgroovefingerprinter-dev.
 2. `npm install --save groove`
 
+### Versions
+
+ * node-groove >=2.4.0 depends on libgroove >=4.3.0
+ * use node-groove 2.3.4 if you want to use libgroove <4.3.0
+
 ### Get Metadata from File
 
 ```js
