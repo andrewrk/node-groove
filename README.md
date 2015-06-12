@@ -128,6 +128,10 @@ The string that was passed to `groove.open`
 A playlist managers keeping an audio buffer full. To send the buffer
 to your speakers, use `playlist.createPlayer()`.
 
+Note: you probably only want one playlist. In node-groove, a playlist is
+a low-level audio processing concept, not to be confused with user-facing
+playlists where users might add, remove, and re-order songs.
+
 #### playlist.items()
 
 Returns a read-only array of playlist items.
