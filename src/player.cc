@@ -35,7 +35,7 @@ void GNPlayer::Init() {
 }
 
 NAN_METHOD(GNPlayer::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlayer *obj = new GNPlayer();
     obj->Wrap(info.This());
@@ -56,7 +56,7 @@ Local<Value> GNPlayer::NewInstance(GroovePlayer *player) {
 }
 
 NAN_GETTER(GNPlayer::GetId) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_player->player);
@@ -64,7 +64,7 @@ NAN_GETTER(GNPlayer::GetId) {
 }
 
 NAN_GETTER(GNPlayer::GetPlaylist) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
     GroovePlaylist *playlist = gn_player->player->playlist;
     if (playlist) {
@@ -76,7 +76,7 @@ NAN_GETTER(GNPlayer::GetPlaylist) {
 }
 
 NAN_METHOD(GNPlayer::Position) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
     GroovePlaylistItem *item;
     double pos;
@@ -108,7 +108,7 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
 
@@ -160,7 +160,7 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
@@ -202,7 +202,7 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNPlayer::Create) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
@@ -243,7 +243,7 @@ NAN_METHOD(GNPlayer::Create) {
 }
 
 NAN_METHOD(GNPlayer::Attach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
 
@@ -332,7 +332,7 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
@@ -354,7 +354,7 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNPlayer::Detach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {

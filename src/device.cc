@@ -30,7 +30,7 @@ void GNDevice::Init() {
 }
 
 NAN_METHOD(GNDevice::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNDevice *obj = new GNDevice();
     obj->Wrap(info.This());

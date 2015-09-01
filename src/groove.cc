@@ -15,7 +15,7 @@ using namespace v8;
 static SoundIo *soundio = NULL;
 
 NAN_METHOD(SetLogging) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsNumber()) {
         Nan::ThrowTypeError("Expected 1 number argument");
@@ -55,7 +55,7 @@ NAN_METHOD(DisconnectSoundBackend) {
 }
 
 NAN_METHOD(GetDevices) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (soundio->current_backend == SoundIoBackendNone) {
         Nan::ThrowError("no backend connected");
@@ -84,7 +84,7 @@ NAN_METHOD(GetDevices) {
 }
 
 NAN_METHOD(GetVersion) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     Local<Object> version = Nan::New<Object>();
     Nan::Set(version, Nan::New<String>("major").ToLocalChecked(), Nan::New<Number>(groove_version_major()));

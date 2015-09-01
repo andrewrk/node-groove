@@ -33,7 +33,7 @@ void GNFile::Init() {
 }
 
 NAN_METHOD(GNFile::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     assert(info.IsConstructCall());
 
     GNFile *obj = new GNFile();
@@ -55,13 +55,13 @@ Local<Value> GNFile::NewInstance(GrooveFile *file) {
 }
 
 NAN_GETTER(GNFile::GetDirty) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     info.GetReturnValue().Set(Nan::New<Boolean>(gn_file->file->dirty));
 }
 
 NAN_GETTER(GNFile::GetId) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_file->file);
@@ -133,7 +133,7 @@ NAN_METHOD(GNFile::SetMetadata) {
 }
 
 NAN_METHOD(GNFile::Metadata) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     Local<Object> metadata = Nan::New<Object>();
@@ -148,13 +148,13 @@ NAN_METHOD(GNFile::Metadata) {
 }
 
 NAN_METHOD(GNFile::ShortNames) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     info.GetReturnValue().Set(Nan::New<String>(groove_file_short_names(gn_file->file)).ToLocalChecked());
 }
 
 NAN_METHOD(GNFile::Duration) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
     info.GetReturnValue().Set(Nan::New<Number>(groove_file_duration(gn_file->file)));
 }
@@ -173,7 +173,7 @@ static void CloseAsync(uv_work_t *req) {
 }
 
 static void CloseAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
 
@@ -197,7 +197,7 @@ static void CloseAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFile::Close) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
 
@@ -231,7 +231,7 @@ static void OpenAsync(uv_work_t *req) {
 }
 
 static void OpenAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     OpenReq *r = reinterpret_cast<OpenReq *>(req->data);
 
     Local<Value> argv[2];
@@ -256,7 +256,7 @@ static void OpenAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFile::Open) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsString()) {
         Nan::ThrowTypeError("Expected string arg[0]");
@@ -290,7 +290,7 @@ static void SaveAsync(uv_work_t *req) {
 }
 
 static void SaveAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
 
@@ -313,7 +313,7 @@ static void SaveAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFile::Save) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
 
