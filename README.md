@@ -43,6 +43,7 @@ groove.open("danse-macabre.ogg", function(err, file) {
  * example/replaygain.js - compute replaygain values for media files
  * example/transcode.js - convert and splice several files together
  * example/fingerprint.js - create an acoustid fingerprint for media files
+ * example/devices.js - list the playback devices on the system
 
 ## API Documentation
 
