@@ -231,6 +231,10 @@ Defaults to `groove.EVERY_SINK_FULL`.
 These are not instantiated directly; instead they are returned from
 `playlist.items()`.
 
+A `GroovePlaylistItem` is merely a pointer into a `GroovePlaylist`. If you
+remove a playlist item from a playlist, any playlist item references you
+have lying around become dangling pointers.
+
 #### item.file
 
 Read-only.
