@@ -92,8 +92,10 @@ NAN_METHOD(GNFile::GetMetadata) {
 
     String::Utf8Value key_str(info[0]->ToString());
     GrooveTag *tag = groove_file_metadata_get(gn_file->file, *key_str, NULL, flags);
-    if (tag)
+    if (tag) {
         info.GetReturnValue().Set(Nan::New<String>(groove_tag_value(tag)).ToLocalChecked());
+        return;
+    }
 
     info.GetReturnValue().Set(Nan::Null());
 }

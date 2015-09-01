@@ -43,6 +43,7 @@ function cleanup() {
     assert.ifError(err);
     encoder.detach(function(err) {
       assert.ifError(err);
+      playlist.destroy();
     });
   });
 }

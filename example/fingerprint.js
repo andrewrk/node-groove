@@ -21,22 +21,21 @@ printer.on('info', function() {
 var files = [];
 var pend = new Pend();
 
-printer.attach(playlist, function(err) {
+for (var i = 2; i < process.argv.length; i += 1) {
+  var o = {
+    file: null,
+    filename: process.argv[i],
+  };
+  files.push(o);
+  pend.go(openFileFn(o));
+}
+pend.wait(function(err) {
   if (err) throw err;
-
-
-  for (var i = 2; i < process.argv.length; i += 1) {
-    var o = {
-      file: null,
-      filename: process.argv[i],
-    };
-    pend.go(openFileFn(o));
-  }
-  pend.wait(function(err) {
+  files.forEach(function(o) {
+    playlist.insert(o.file, null);
+  });
+  printer.attach(playlist, function(err) {
     if (err) throw err;
-    files.forEach(function(o) {
-      playlist.insert(o.file, null);
-    });
   });
 });
 

@@ -34,6 +34,7 @@ detector.attach(playlist, function(err) {
       filename: process.argv[i],
       file: null,
     };
+    files.push(o);
     pend.go(openFileFn(o));
   }
   pend.wait(function(err) {

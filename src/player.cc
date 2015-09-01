@@ -99,7 +99,6 @@ struct AttachReq {
     GroovePlaylist *playlist;
     int errcode;
     Nan::Persistent<Object> instance;
-    SoundIoDevice *device;
     GNPlayer::EventContext *event_context;
 };
 
@@ -147,7 +146,6 @@ static void EventThreadEntry(void *arg) {
 static void AttachAsync(uv_work_t *req) {
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
-    r->player->device = r->device;
     r->errcode = groove_player_attach(r->player, r->playlist);
 
     GNPlayer::EventContext *context = r->event_context;
@@ -238,6 +236,8 @@ NAN_METHOD(GNPlayer::Create) {
     Nan::Set(instance, Nan::New<String>("device").ToLocalChecked(), Nan::Null());
     Nan::Set(instance, Nan::New<String>("actualAudioFormat").ToLocalChecked(), Nan::Null());
     Nan::Set(instance, Nan::New<String>("targetAudioFormat").ToLocalChecked(), targetAudioFormat);
+
+    Nan::Set(instance, Nan::New<String>("useExactAudioFormat").ToLocalChecked(), Nan::New<Boolean>(false));
 
     info.GetReturnValue().Set(instance);
 }
