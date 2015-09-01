@@ -71,7 +71,8 @@ NAN_METHOD(GetDevices) {
 
     for (int i = 0; i < output_count; i += 1) {
         struct SoundIoDevice *device = soundio_get_output_device(soundio, i);
-        Nan::Set(deviceList, Nan::New<Number>(i), GNDevice::NewInstance(device));
+        Local<Value> deviceObject = GNDevice::NewInstance(device);
+        Nan::Set(deviceList, Nan::New<Number>(i), deviceObject);
     }
 
     Local<Object> ret_value = Nan::New<Object>();
@@ -121,6 +122,7 @@ NAN_MODULE_INIT(Initialize) {
     GNLoudnessDetector::Init();
     GNEncoder::Init();
     GNFingerprinter::Init();
+    GNDevice::Init();
 
     SetProperty(target, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(target, "LOG_ERROR", GROOVE_LOG_ERROR);
