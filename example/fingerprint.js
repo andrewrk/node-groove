@@ -1,8 +1,7 @@
 /* generate the acoustid fingerprint of songs */
 
 var groove = require('../');
-var assert = require('assert');
-var Batch = require('batch'); // npm install batch
+var Pend = require('pend');
 
 if (process.argv.length < 3) usage();
 
@@ -19,40 +18,50 @@ printer.on('info', function() {
   }
 });
 
-printer.attach(playlist, function(err) {
-  assert.ifError(err);
+var files = [];
+var pend = new Pend();
 
-  var batch = new Batch();
+printer.attach(playlist, function(err) {
+  if (err) throw err;
+
+
   for (var i = 2; i < process.argv.length; i += 1) {
-    batch.push(openFileFn(process.argv[i]));
+    var o = {
+      file: null,
+      filename: process.argv[i],
+    };
+    pend.go(openFileFn(o));
   }
-  batch.end(function(err, files) {
-    files.forEach(function(file) {
-      if (file) {
-        playlist.insert(file, null);
-      }
+  pend.wait(function(err) {
+    if (err) throw err;
+    files.forEach(function(o) {
+      playlist.insert(o.file, null);
     });
   });
 });
 
-function openFileFn(filename) {
+function openFileFn(o) {
   return function(cb) {
-    groove.open(filename, cb);
+    groove.open(o.filename, function(err, file) {
+      if (err) return cb(err);
+      o.file = file;
+      cb();
+    });
   };
 }
 
 function cleanup() {
-  var batch = new Batch();
-  var files = playlist.items().map(function(item) { return item.file; });
   playlist.clear();
-  files.forEach(function(file) {
-    batch.push(function(cb) {
-      file.close(cb);
+  files.forEach(function(o) {
+    pend.go(function(cb) {
+      o.file.close(cb);
     });
   });
-  batch.end(function(err) {
+  pend.wait(function(err) {
+    if (err) throw err;
     printer.detach(function(err) {
-      if (err) console.error(err.stack);
+      if (err) throw err;
+      playlist.destroy();
     });
   });
 }

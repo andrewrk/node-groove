@@ -66,7 +66,7 @@ function cleanup() {
     if (err) throw err;
     player.detach(function(err) {
       if (err) throw err;
-      player.destroy();
+      playlist.destroy();
     });
   });
 }
