@@ -1,7 +1,6 @@
 /* transcode a file into ogg vorbis */
 
 var groove = require('../');
-var assert = require('assert');
 var fs = require('fs');
 
 if (process.argv.length < 4) usage();
@@ -28,10 +27,10 @@ encoder.on('buffer', function() {
 });
 
 encoder.attach(playlist, function(err) {
-  assert.ifError(err);
+  if (err) throw err;
 
   groove.open(process.argv[2], function(err, file) {
-    assert.ifError(err);
+    if (err) throw err;
     playlist.insert(file, null);
   });
 });
@@ -40,9 +39,9 @@ function cleanup() {
   var file = playlist.items()[0].file;
   playlist.clear();
   file.close(function(err) {
-    assert.ifError(err);
+    if (err) throw err;
     encoder.detach(function(err) {
-      assert.ifError(err);
+      if (err) throw err;
       playlist.destroy();
     });
   });
