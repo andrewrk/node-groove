@@ -27,7 +27,7 @@ void GNLoudnessDetector::Init() {
 }
 
 NAN_METHOD(GNLoudnessDetector::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNLoudnessDetector *obj = new GNLoudnessDetector();
     obj->Wrap(info.This());
@@ -48,7 +48,7 @@ Handle<Value> GNLoudnessDetector::NewInstance(GrooveLoudnessDetector *detector) 
 }
 
 NAN_METHOD(GNLoudnessDetector::Create) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
@@ -81,7 +81,7 @@ NAN_METHOD(GNLoudnessDetector::Create) {
 }
 
 NAN_METHOD(GNLoudnessDetector::Position) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
     GrooveLoudnessDetector *detector = gn_detector->detector;
@@ -101,7 +101,7 @@ NAN_METHOD(GNLoudnessDetector::Position) {
 }
 
 NAN_METHOD(GNLoudnessDetector::GetInfo) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
     GrooveLoudnessDetector *detector = gn_detector->detector;
@@ -142,7 +142,7 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNLoudnessDetector::EventContext *context = reinterpret_cast<GNLoudnessDetector::EventContext *>(handle->data);
 
@@ -191,7 +191,7 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
@@ -216,7 +216,7 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNLoudnessDetector::Attach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
 
@@ -281,7 +281,7 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
@@ -304,7 +304,7 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNLoudnessDetector::Detach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {

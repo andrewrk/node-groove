@@ -30,7 +30,7 @@ void GNEncoder::Init() {
 }
 
 NAN_METHOD(GNEncoder::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNEncoder *obj = new GNEncoder();
     obj->Wrap(info.This());
@@ -70,7 +70,7 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
 
@@ -140,7 +140,7 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
@@ -174,7 +174,7 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNEncoder::Create) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
@@ -214,7 +214,7 @@ NAN_METHOD(GNEncoder::Create) {
 }
 
 NAN_METHOD(GNEncoder::Attach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
 
@@ -319,7 +319,7 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
@@ -341,7 +341,7 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNEncoder::Detach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
@@ -375,7 +375,7 @@ static void buffer_free(char *data, void *hint) {
 }
 
 NAN_METHOD(GNEncoder::GetBuffer) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
     GrooveEncoder *encoder = gn_encoder->encoder;
 
@@ -424,7 +424,7 @@ NAN_METHOD(GNEncoder::GetBuffer) {
 }
 
 NAN_METHOD(GNEncoder::Position) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(info.This());
     GrooveEncoder *encoder = gn_encoder->encoder;

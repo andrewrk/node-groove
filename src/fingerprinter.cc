@@ -27,7 +27,7 @@ void GNFingerprinter::Init() {
 }
 
 NAN_METHOD(GNFingerprinter::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFingerprinter *obj = new GNFingerprinter();
     obj->Wrap(info.This());
@@ -48,7 +48,7 @@ Handle<Value> GNFingerprinter::NewInstance(GrooveFingerprinter *printer) {
 }
 
 NAN_METHOD(GNFingerprinter::Create) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
@@ -80,7 +80,7 @@ NAN_METHOD(GNFingerprinter::Create) {
 }
 
 NAN_METHOD(GNFingerprinter::Position) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
     GrooveFingerprinter *printer = gn_printer->printer;
@@ -101,7 +101,7 @@ NAN_METHOD(GNFingerprinter::Position) {
 }
 
 NAN_METHOD(GNFingerprinter::GetInfo) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
     GrooveFingerprinter *printer = gn_printer->printer;
@@ -151,7 +151,7 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(handle->data);
 
@@ -200,7 +200,7 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
@@ -224,7 +224,7 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFingerprinter::Attach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
 
@@ -288,7 +288,7 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
@@ -311,7 +311,7 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFingerprinter::Detach) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
@@ -333,7 +333,7 @@ NAN_METHOD(GNFingerprinter::Detach) {
 }
 
 NAN_METHOD(GNFingerprinter::Encode) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsArray()) {
         Nan::ThrowTypeError("Expected Array arg[0]");
@@ -357,7 +357,7 @@ NAN_METHOD(GNFingerprinter::Encode) {
 }
 
 NAN_METHOD(GNFingerprinter::Decode) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsString()) {
         Nan::ThrowTypeError("Expected String arg[0]");

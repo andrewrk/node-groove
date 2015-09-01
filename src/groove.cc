@@ -12,7 +12,7 @@
 using namespace v8;
 
 NAN_METHOD(SetLogging) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if (info.Length() < 1 || !info[0]->IsNumber()) {
         Nan::ThrowTypeError("Expected 1 number argument");
@@ -22,7 +22,7 @@ NAN_METHOD(SetLogging) {
 }
 
 NAN_METHOD(GetDevices) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     Local<Array> deviceList = Nan::New<Array>();
     int device_count = groove_device_count();
@@ -35,7 +35,7 @@ NAN_METHOD(GetDevices) {
 }
 
 NAN_METHOD(GetVersion) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     Local<Object> version = Nan::New<Object>();
     Nan::Set(version, Nan::New<String>("major").ToLocalChecked(), Nan::New<Number>(groove_version_major()));

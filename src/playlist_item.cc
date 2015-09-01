@@ -25,7 +25,7 @@ void GNPlaylistItem::Init() {
 }
 
 NAN_METHOD(GNPlaylistItem::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlaylistItem *obj = new GNPlaylistItem();
     obj->Wrap(info.This());

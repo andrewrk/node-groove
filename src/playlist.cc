@@ -47,7 +47,7 @@ void GNPlaylist::Init() {
 }
 
 NAN_METHOD(GNPlaylist::New) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     assert(info.IsConstructCall());
 
     GNPlaylist *obj = new GNPlaylist();
@@ -69,7 +69,7 @@ Handle<Value> GNPlaylist::NewInstance(GroovePlaylist *playlist) {
 }
 
 NAN_GETTER(GNPlaylist::GetId) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_playlist->playlist);
@@ -83,14 +83,14 @@ NAN_GETTER(GNPlaylist::GetGain) {
 }
 
 NAN_METHOD(GNPlaylist::Play) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_play(gn_playlist->playlist);
     return;
 }
 
 NAN_METHOD(GNPlaylist::Playlist) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
 
     Local<Array> playlist = Nan::New<Array>();
@@ -107,14 +107,14 @@ NAN_METHOD(GNPlaylist::Playlist) {
 }
 
 NAN_METHOD(GNPlaylist::Pause) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_pause(gn_playlist->playlist);
     return;
 }
 
 NAN_METHOD(GNPlaylist::Seek) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GNPlaylistItem *gn_playlist_item =
@@ -127,7 +127,7 @@ NAN_METHOD(GNPlaylist::Seek) {
 }
 
 NAN_METHOD(GNPlaylist::Insert) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info[0]->ToObject());
@@ -153,7 +153,7 @@ NAN_METHOD(GNPlaylist::Insert) {
 }
 
 NAN_METHOD(GNPlaylist::Remove) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info[0]->ToObject());
     groove_playlist_remove(gn_playlist->playlist, gn_pl_item->playlist_item);
@@ -161,7 +161,7 @@ NAN_METHOD(GNPlaylist::Remove) {
 }
 
 NAN_METHOD(GNPlaylist::DecodePosition) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GroovePlaylistItem *item;
     double pos = -1.0;
@@ -177,27 +177,27 @@ NAN_METHOD(GNPlaylist::DecodePosition) {
 }
 
 NAN_METHOD(GNPlaylist::Playing) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     int playing = groove_playlist_playing(gn_playlist->playlist);
     info.GetReturnValue().Set(Nan::New<Boolean>(playing));
 }
 
 NAN_METHOD(GNPlaylist::Clear) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_clear(gn_playlist->playlist);
 }
 
 NAN_METHOD(GNPlaylist::Count) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     int count = groove_playlist_count(gn_playlist->playlist);
     info.GetReturnValue().Set(Nan::New<Number>(count));
 }
 
 NAN_METHOD(GNPlaylist::SetItemGain) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info[0]->ToObject());
     double gain = info[1]->NumberValue();
@@ -213,19 +213,19 @@ NAN_METHOD(GNPlaylist::SetItemPeak) {
 }
 
 NAN_METHOD(GNPlaylist::SetGain) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_set_gain(gn_playlist->playlist, info[0]->NumberValue());
 }
 
 NAN_METHOD(GNPlaylist::SetFillMode) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_set_fill_mode(gn_playlist->playlist, info[0]->NumberValue());
 }
 
 NAN_METHOD(GNPlaylist::Create) {
-    Nan::HandleScope();
+    Nan::HandleScope scope;
     GroovePlaylist *playlist = groove_playlist_create();
     Local<Value> tmp = GNPlaylist::NewInstance(playlist);
     info.GetReturnValue().Set(tmp);
