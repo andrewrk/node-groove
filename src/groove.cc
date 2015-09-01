@@ -37,6 +37,9 @@ NAN_METHOD(ConnectSoundBackend) {
         return;
     }
 
+    if (soundio->current_backend != SoundIoBackendNone)
+        soundio_disconnect(soundio);
+
     int err = (backend == SoundIoBackendNone) ?
         soundio_connect(soundio) : soundio_connect_backend(soundio, backend);
 
@@ -47,11 +50,8 @@ NAN_METHOD(ConnectSoundBackend) {
 }
 
 NAN_METHOD(DisconnectSoundBackend) {
-    if (soundio->current_backend == SoundIoBackendNone) {
-        Nan::ThrowError("no sound backend connected");
-        return;
-    }
-    soundio_disconnect(soundio);
+    if (soundio->current_backend != SoundIoBackendNone)
+        soundio_disconnect(soundio);
 }
 
 NAN_METHOD(GetDevices) {
@@ -145,6 +145,7 @@ NAN_MODULE_INIT(Initialize) {
     SetProperty(target, "BACKEND_ALSA", SoundIoBackendAlsa);
     SetProperty(target, "BACKEND_COREAUDIO", SoundIoBackendCoreAudio);
     SetProperty(target, "BACKEND_WASAPI", SoundIoBackendWasapi);
+    SetProperty(target, "BACKEND_DUMMY", SoundIoBackendDummy);
 
     SetMethod(target, "setLogging", SetLogging);
     SetMethod(target, "getDevices", GetDevices);

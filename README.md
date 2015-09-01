@@ -304,6 +304,7 @@ selected. Otherwise it can be one of these:
  * `groove.BACKEND_ALSA`
  * `groove.BACKEND_COREAUDIO`
  * `groove.BACKEND_WASAPI`
+ * `groove.BACKEND_DUMMY`
 
 #### groove.disconnectSoundBackend()
 
