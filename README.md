@@ -135,6 +135,10 @@ Note: you probably only want one playlist. In node-groove, a playlist is
 a low-level audio processing concept, not to be confused with user-facing
 playlists where users might add, remove, and re-order songs.
 
+#### playlist.destroy()
+
+When finished with your playlist you must destroy it.
+
 #### playlist.items()
 
 Returns a read-only array of playlist items.

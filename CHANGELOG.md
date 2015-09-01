@@ -17,3 +17,5 @@
  * `player.device` is mandatory, and you must get a device reference by calling
    `groove.getDevices()`. You must call `groove.connectSoundBackend()` before
    calling `groove.getDevices()`.
+ * After calling `playlist.create` you must call `playlist.destroy` when finished
+   with the playlist.

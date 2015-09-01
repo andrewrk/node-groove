@@ -20,6 +20,7 @@ class GNPlaylist : public node::ObjectWrap {
         ~GNPlaylist();
 
         static NAN_METHOD(New);
+        static NAN_METHOD(Destroy);
 
         static NAN_GETTER(GetId);
         static NAN_GETTER(GetGain);

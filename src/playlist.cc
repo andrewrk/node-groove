@@ -5,14 +5,8 @@
 
 using namespace v8;
 
-GNPlaylist::GNPlaylist() {
-};
-GNPlaylist::~GNPlaylist() {
-    // TODO move this somewhere else because we create multiple objects with
-    // the same playlist pointer in player.playlist or encoder.playlist
-    // for example
-    groove_playlist_destroy(playlist);
-};
+GNPlaylist::GNPlaylist() { };
+GNPlaylist::~GNPlaylist() { };
 
 static Nan::Persistent<v8::Function> constructor;
 
@@ -28,6 +22,7 @@ void GNPlaylist::Init() {
     Nan::SetAccessor(proto, Nan::New<String>("gain").ToLocalChecked(), GetGain);
 
     // Methods
+    Nan::SetPrototypeMethod(tpl, "destroy", Destroy);
     Nan::SetPrototypeMethod(tpl, "play", Play);
     Nan::SetPrototypeMethod(tpl, "items", Playlist);
     Nan::SetPrototypeMethod(tpl, "pause", Pause);
@@ -67,8 +62,14 @@ Local<Value> GNPlaylist::NewInstance(GroovePlaylist *playlist) {
     return scope.Escape(instance);
 }
 
-NAN_GETTER(GNPlaylist::GetId) {
+NAN_METHOD(GNPlaylist::Destroy) {
     Nan::HandleScope();
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
+    groove_playlist_destroy(gn_playlist->playlist);
+    gn_playlist->playlist = NULL;
+}
+
+NAN_GETTER(GNPlaylist::GetId) {
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_playlist->playlist);
@@ -76,7 +77,6 @@ NAN_GETTER(GNPlaylist::GetId) {
 }
 
 NAN_GETTER(GNPlaylist::GetGain) {
-    Nan::HandleScope();
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     info.GetReturnValue().Set(Nan::New<Number>(gn_playlist->playlist->gain));
 }
