@@ -43,7 +43,7 @@ NAN_METHOD(GNPlayer::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNPlayer::NewInstance(GroovePlayer *player) {
+Local<Value> GNPlayer::NewInstance(GroovePlayer *player) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

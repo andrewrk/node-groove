@@ -8,7 +8,7 @@
 class GNPlayer : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GroovePlayer *player);
+        static v8::Local<v8::Value> NewInstance(GroovePlayer *player);
 
         static NAN_METHOD(Create);
 

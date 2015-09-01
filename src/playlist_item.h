@@ -8,7 +8,7 @@
 class GNPlaylistItem : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GroovePlaylistItem *playlist_item);
+        static v8::Local<v8::Value> NewInstance(GroovePlaylistItem *playlist_item);
 
         GroovePlaylistItem *playlist_item;
     private:

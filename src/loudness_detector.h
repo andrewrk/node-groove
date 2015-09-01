@@ -8,7 +8,7 @@
 class GNLoudnessDetector : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GrooveLoudnessDetector *detector);
+        static v8::Local<v8::Value> NewInstance(GrooveLoudnessDetector *detector);
 
         static NAN_METHOD(Create);
 

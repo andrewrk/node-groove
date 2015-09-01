@@ -33,7 +33,7 @@ NAN_METHOD(GNPlaylistItem::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNPlaylistItem::NewInstance(GroovePlaylistItem *playlist_item) {
+Local<Value> GNPlaylistItem::NewInstance(GroovePlaylistItem *playlist_item) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

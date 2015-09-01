@@ -8,7 +8,7 @@
 class GNPlaylist : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GroovePlaylist *playlist);
+        static v8::Local<v8::Value> NewInstance(GroovePlaylist *playlist);
 
         static NAN_METHOD(Create);
 

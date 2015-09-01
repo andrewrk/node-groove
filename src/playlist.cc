@@ -55,7 +55,7 @@ NAN_METHOD(GNPlaylist::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNPlaylist::NewInstance(GroovePlaylist *playlist) {
+Local<Value> GNPlaylist::NewInstance(GroovePlaylist *playlist) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);
@@ -147,8 +147,7 @@ NAN_METHOD(GNPlaylist::Insert) {
     GroovePlaylistItem *result = groove_playlist_insert(gn_playlist->playlist,
             gn_file->file, gain, peak, item);
 
-    Local<Value> tmp = GNPlaylistItem::NewInstance(result);
-    info.GetReturnValue().Set(tmp);
+    info.GetReturnValue().Set(GNPlaylistItem::NewInstance(result));
 }
 
 NAN_METHOD(GNPlaylist::Remove) {

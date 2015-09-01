@@ -38,7 +38,7 @@ NAN_METHOD(GNEncoder::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNEncoder::NewInstance(GrooveEncoder *encoder) {
+Local<Value> GNEncoder::NewInstance(GrooveEncoder *encoder) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

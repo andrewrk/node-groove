@@ -8,7 +8,7 @@
 class GNDevice : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(SoundIoDevice *device);
+        static v8::Local<v8::Value> NewInstance(SoundIoDevice *device);
 
         SoundIoDevice *device;
     private:

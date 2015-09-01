@@ -35,7 +35,7 @@ NAN_METHOD(GNFingerprinter::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNFingerprinter::NewInstance(GrooveFingerprinter *printer) {
+Local<Value> GNFingerprinter::NewInstance(GrooveFingerprinter *printer) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

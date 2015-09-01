@@ -35,7 +35,7 @@ NAN_METHOD(GNLoudnessDetector::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNLoudnessDetector::NewInstance(GrooveLoudnessDetector *detector) {
+Local<Value> GNLoudnessDetector::NewInstance(GrooveLoudnessDetector *detector) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

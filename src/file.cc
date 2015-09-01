@@ -42,7 +42,7 @@ NAN_METHOD(GNFile::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNFile::NewInstance(GrooveFile *file) {
+Local<Value> GNFile::NewInstance(GrooveFile *file) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);

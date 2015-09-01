@@ -10,7 +10,7 @@ using Nan::Callback;
 class GNFingerprinter : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GrooveFingerprinter *printer);
+        static v8::Local<v8::Value> NewInstance(GrooveFingerprinter *printer);
 
         static NAN_METHOD(Create);
 

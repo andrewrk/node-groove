@@ -8,7 +8,7 @@
 class GNEncoder : public node::ObjectWrap {
     public:
         static void Init();
-        static v8::Handle<v8::Value> NewInstance(GrooveEncoder *encoder);
+        static v8::Local<v8::Value> NewInstance(GrooveEncoder *encoder);
 
         static NAN_METHOD(Create);
 

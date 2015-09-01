@@ -38,7 +38,7 @@ NAN_METHOD(GNDevice::New) {
     info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value> GNDevice::NewInstance(SoundIoDevice *device) {
+Local<Value> GNDevice::NewInstance(SoundIoDevice *device) {
     Nan::EscapableHandleScope scope;
 
     Local<Function> cons = Nan::New(constructor);
