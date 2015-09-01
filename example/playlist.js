@@ -1,18 +1,17 @@
 /* play several files in a row and then exit */
 
 var groove = require('../');
-var assert = require('assert');
-var Batch = require('batch'); // npm install batch
+var Pend = require('pend');
 
 if (process.argv.length < 3) usage();
 
 var playlist = groove.createPlaylist();
 var player = groove.createPlayer();
-player.useExactAudioFormat = true;
 
-player.on('devicereopened', function() {
-  console.log("Device re-opened");
-});
+groove.connectSoundBackend();
+var devices = groove.getDevices();
+var defaultDevice = devices.list[devices.defaultIndex];
+player.device = defaultDevice;
 
 player.on('nowplaying', function() {
   var current = player.position();
@@ -25,38 +24,48 @@ player.on('nowplaying', function() {
   console.log("Now playing:", artist, "-", title);
 });
 
-var batch = new Batch();
+var files = [];
+
+var pend = new Pend();
 for (var i = 2; i < process.argv.length; i += 1) {
-  batch.push(openFileFn(process.argv[i]));
+  var o = {
+    filename: process.argv[i],
+    file: null,
+  };
+  files.push(o);
+  pend.go(openFileFn(o));
 }
-batch.end(function(err, files) {
-  files.forEach(function(file) {
-    if (file) {
-      playlist.insert(file);
-    }
+pend.wait(function(err) {
+  if (err) throw err;
+  files.forEach(function(o) {
+    playlist.insert(o.file);
   });
   player.attach(playlist, function(err) {
-    assert.ifError(err);
+    if (err) throw err;
   });
 });
-function openFileFn(filename) {
+
+function openFileFn(o, filename) {
   return function(cb) {
-    groove.open(filename, cb);
+    groove.open(o.filename, function(err, file) {
+      if (err) return cb(err);
+      o.file = file;
+      cb();
+    });
   };
 }
 
 function cleanup() {
-  var batch = new Batch();
-  var files = playlist.items().map(function(item) { return item.file; });
   playlist.clear();
-  files.forEach(function(file) {
-    batch.push(function(cb) {
-      file.close(cb);
+  files.forEach(function(o) {
+    pend.go(function(cb) {
+      o.file.close(cb);
     });
   });
-  batch.end(function(err) {
+  pend.wait(function(err) {
+    if (err) throw err;
     player.detach(function(err) {
-      if (err) console.error(err.stack);
+      if (err) throw err;
     });
   });
 }

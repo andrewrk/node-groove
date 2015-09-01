@@ -13,3 +13,7 @@
  * `detector.sinkBufferSize` - removed. This functionality no longer exists.
  * `printer.sinkBufferSize` - removed. This functionality no longer exists.
  * `encoder.sinkBufferSize` - removed. This functionality no longer exists.
+ * `player.deviceIndex` - removed in favor of `player.device`.
+ * `player.device` is mandatory, and you must get a device reference by calling
+   `groove.getDevices()`. You must call `groove.connectSoundBackend()` before
+   calling `groove.getDevices()`.

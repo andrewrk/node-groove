@@ -15,7 +15,8 @@
   "license": "MIT",
   "devDependencies": {
     "mocha": "~2.2.5",
-    "ncp": "~2.0.0"
+    "ncp": "~2.0.0",
+    "pend": "~1.2.0"
   },
   "dependencies": {
     "bindings": "~1.2.1",

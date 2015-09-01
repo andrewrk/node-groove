@@ -24,8 +24,43 @@ NAN_METHOD(SetLogging) {
     groove_set_logging(info[0]->NumberValue());
 }
 
+NAN_METHOD(ConnectSoundBackend) {
+    SoundIoBackend backend = SoundIoBackendNone;
+    if (info.Length() == 1) {
+        if (!info[0]->IsNumber()) {
+            Nan::ThrowTypeError("Expected 0 or 1 args");
+            return;
+        }
+        backend = (SoundIoBackend)(int)info[0]->NumberValue();
+    } else if (info.Length() > 1) {
+        Nan::ThrowTypeError("Expected 0 or 1 args");
+        return;
+    }
+
+    int err = (backend == SoundIoBackendNone) ?
+        soundio_connect(soundio) : soundio_connect_backend(soundio, backend);
+
+    if (err) {
+        Nan::ThrowError(soundio_strerror(err));
+        return;
+    }
+}
+
+NAN_METHOD(DisconnectSoundBackend) {
+    if (soundio->current_backend == SoundIoBackendNone) {
+        Nan::ThrowError("no sound backend connected");
+        return;
+    }
+    soundio_disconnect(soundio);
+}
+
 NAN_METHOD(GetDevices) {
     Nan::HandleScope();
+
+    if (soundio->current_backend == SoundIoBackendNone) {
+        Nan::ThrowError("no backend connected");
+        return;
+    }
 
     soundio_flush_events(soundio);
 
@@ -36,10 +71,7 @@ NAN_METHOD(GetDevices) {
 
     for (int i = 0; i < output_count; i += 1) {
         struct SoundIoDevice *device = soundio_get_output_device(soundio, i);
-        Local<Value> gn_device = GNDevice::NewInstance(device);
-
-        Nan::Set(deviceList, Nan::New<Number>(i), gn_device);
-        soundio_device_unref(device);
+        Nan::Set(deviceList, Nan::New<Number>(i), GNDevice::NewInstance(device));
     }
 
     Local<Object> ret_value = Nan::New<Object>();
@@ -106,8 +138,16 @@ NAN_MODULE_INIT(Initialize) {
     SetProperty(target, "_EVENT_BUFFERUNDERRUN", GROOVE_EVENT_BUFFERUNDERRUN);
     SetProperty(target, "_EVENT_DEVICEREOPENED", GROOVE_EVENT_DEVICEREOPENED);
 
+    SetProperty(target, "BACKEND_JACK", SoundIoBackendJack);
+    SetProperty(target, "BACKEND_PULSEAUDIO", SoundIoBackendPulseAudio);
+    SetProperty(target, "BACKEND_ALSA", SoundIoBackendAlsa);
+    SetProperty(target, "BACKEND_COREAUDIO", SoundIoBackendCoreAudio);
+    SetProperty(target, "BACKEND_WASAPI", SoundIoBackendWasapi);
+
     SetMethod(target, "setLogging", SetLogging);
     SetMethod(target, "getDevices", GetDevices);
+    SetMethod(target, "connectSoundBackend", ConnectSoundBackend);
+    SetMethod(target, "disconnectSoundBackend", DisconnectSoundBackend);
     SetMethod(target, "getVersion", GetVersion);
     SetMethod(target, "open", GNFile::Open);
     SetMethod(target, "createPlayer", GNPlayer::Create);

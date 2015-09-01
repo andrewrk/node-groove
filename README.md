@@ -266,6 +266,9 @@ Read-only.
 
 #### groove.getDevices()
 
+Before you can call this function, you must call
+`groove.connectSoundBackend()`.
+
 Returns an object like this:
 
 ```js
@@ -283,16 +286,28 @@ Returns an object like this:
 }
 ```
 
+#### groove.connectSoundBackend([backend])
+
+`backend` is optional. If left blank the best backend is automatically
+selected. Otherwise it can be one of these:
+
+ * `groove.BACKEND_JACK`
+ * `groove.BACKEND_PULSEAUDIO`
+ * `groove.BACKEND_ALSA`
+ * `groove.BACKEND_COREAUDIO`
+ * `groove.BACKEND_WASAPI`
+
+#### groove.disconnectSoundBackend()
+
 #### groove.createPlayer()
 
 Creates a GroovePlayer instance which you can then configure by setting
 properties.
 
-#### player.deviceIndex
+#### player.device
 
-Before calling `attach()`, set this to the index of one of the devices
-returned from `groove.getDevices()` or `null` to represent the default device.
-Use `groove.DUMMY_DEVICE` to represent a dummy audio player.
+Before calling `attach()`, set this to one of the devices
+returned from `groove.getDevices()`.
 
 #### player.targetAudioFormat
 
