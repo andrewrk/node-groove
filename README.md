@@ -15,8 +15,11 @@ Live discussion in `#libgroove` on [freenode](https://freenode.net/).
 
 ### Versions
 
- * node-groove >=2.4.0 depends on libgroove >=4.3.0
- * use node-groove 2.3.4 if you want to use libgroove <4.3.0
+ * node-groove >=3.0.0 depends on libgroove >=5.0.0
+ * node-groove >=2.4.0 <3.0.0 depends on libgroove >=4.3.0 <5.0.0
+ * node-groove 2.3.4 depends on libgroove <4.3.0
+
+See CHANGELOG.md for release notes and upgrade guide.
 
 ### Get Metadata from File
 
@@ -199,12 +202,10 @@ How many items are on the playlist.
 Between 0.0 and 1.0. You probably want to leave this at 1.0, since using
 replaygain will typically lower your volume a significant amount.
 
-#### playlist.setItemGain(playlistItem, gain)
+#### playlist.setItemGainPeak(playlistItem, gain, peak)
 
 `gain` is a float that affects the volume of the specified playlist item only.
 To convert from dB to float, use exp(log(10) * 0.05 * dBValue).
-
-#### playlist.setItemPeak(playlistItem, peak)
 
 See `item.peak`
 
@@ -214,14 +215,14 @@ See `item.peak`
 
  * `groove.EVERY_SINK_FULL`
 
-    This is the default behavior. The playlist will decode audio if any sinks
-    are not full. If any sinks do not drain fast enough the data will buffer up
-    in the playlist.
+    The playlist will decode audio if any sinks are not full. If any sinks do
+    not drain fast enough the data will buffer up in the playlist.
 
  * `groove.ANY_SINK_FULL`
 
-    With this behavior, the playlist will stop decoding audio when any attached
-    sink is full, and then resume decoding audio every sink is not full.
+    This is the default behavior. With this behavior, the playlist will stop
+    decoding audio when any attached sink is full, and then resume decoding
+    audio every sink is not full.
 
 Defaults to `groove.EVERY_SINK_FULL`.
 
@@ -265,8 +266,22 @@ Read-only.
 
 #### groove.getDevices()
 
-Returns an array of device names which are the devices you can send audio
-to.
+Returns an object like this:
+
+```js
+{
+  list: [
+    {
+      name: "User-Friendly Device Name",
+      id: "unique device ID that persists across plugs and unplugs",
+      isRaw: false, // true if this device would claim exclusive access
+      probeError: 3, // non zero if scanning this device did not work
+    },
+    //...
+  ],
+  defaultIndex: 0,
+}
+```
 
 #### groove.createPlayer()
 
@@ -291,7 +306,7 @@ the substituted values.
 Properties:
 
  * `sampleRate`
- * `channelLayout`
+ * `channelLayout` - array of channel ids
  * `sampleFormat`
 
 #### player.actualAudioFormat
@@ -302,19 +317,8 @@ Ideally will be the same as targetAudioFormat but might not be.
 Properties:
 
  * `sampleRate`
- * `channelLayout`
+ * `channelLayout` - array of channel ids
  * `sampleFormat`
-
-#### player.deviceBufferSize
-
-how big the device buffer should be, in sample frames.
-must be a power of 2.
-`groove.createPlayer()` defaults this to 1024
-
-#### player.sinkBufferSize
-
-How big the sink buffer should be, in sample frames.
-`groove.createPlayer()` defaults this to 8192
 
 #### player.useExactAudioFormat
 
@@ -397,7 +401,7 @@ the substituted values.
 Properties:
 
  * `sampleRate`
- * `channelLayout`
+ * `channelLayout` - array of channel ids
  * `sampleFormat`
 
 #### encoder.actualAudioFormat
@@ -408,7 +412,7 @@ Ideally will be the same as targetAudioFormat but might not be.
 Properties:
 
  * `sampleRate`
- * `channelLayout`
+ * `channelLayout` - array of channel ids
  * `sampleFormat`
 
 #### encoder.sinkBufferSize
@@ -460,11 +464,6 @@ returns a GrooveLoudnessDetector
 #### detector.infoQueueSize
 
 Set this to determine how far ahead into the playlist to look.
-
-#### detector.sinkBufferSize
-
-How big the sink buffer should be, in sample frames.
-`groove.createLoudnessDetector()` defaults this to 8192
 
 #### detector.disableAlbum
 
@@ -520,11 +519,6 @@ fingerprint data.
 #### printer.infoQueueSize
 
 Set this to determine how far ahead into the playlist to look.
-
-#### printer.sinkBufferSize
-
-How big the sink buffer should be, in sample frames.
-`groove.createFingerprinter()` defaults this to 8192
 
 #### printer.attach(playlist, callback)
 

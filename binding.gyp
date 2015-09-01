@@ -10,13 +10,11 @@
           "src/playlist_item.cc",
           "src/loudness_detector.cc",
           "src/fingerprinter.cc",
-          "src/encoder.cc"
+          "src/encoder.cc",
+          "src/device.cc"
         ],
         "libraries": [
-            "-lgroove",
-            "-lgrooveplayer",
-            "-lgrooveloudness",
-            "-lgroovefingerprinter"
+            "-lgroove"
         ],
         "include_dirs": [
             "<!(node -e \"require('nan')\")"

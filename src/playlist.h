@@ -35,8 +35,7 @@ class GNPlaylist : public node::ObjectWrap {
         static NAN_METHOD(Playing);
         static NAN_METHOD(Clear);
         static NAN_METHOD(Count);
-        static NAN_METHOD(SetItemGain);
-        static NAN_METHOD(SetItemPeak);
+        static NAN_METHOD(SetItemGainPeak);
         static NAN_METHOD(SetGain);
         static NAN_METHOD(SetFillMode);
 };

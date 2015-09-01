@@ -3,7 +3,9 @@
 
 #include <node.h>
 #include <nan.h>
-#include <groovefingerprinter/fingerprinter.h>
+#include <groove/fingerprinter.h>
+
+using Nan::Callback;
 
 class GNFingerprinter : public node::ObjectWrap {
     public:
@@ -21,7 +23,7 @@ class GNFingerprinter : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GrooveFingerprinter *printer;
-            NanCallback *event_cb;
+            Callback *event_cb;
         };
 
         EventContext *event_context;

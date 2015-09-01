@@ -3,7 +3,7 @@
 
 #include <node.h>
 #include <nan.h>
-#include <grooveplayer/player.h>
+#include <groove/player.h>
 
 class GNPlayer : public node::ObjectWrap {
     public:
@@ -18,7 +18,7 @@ class GNPlayer : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GroovePlayer *player;
-            NanCallback *event_cb;
+            Nan::Callback *event_cb;
         };
 
 

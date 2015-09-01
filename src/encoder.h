@@ -18,7 +18,7 @@ class GNEncoder : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GrooveEncoder *encoder;
-            NanCallback *event_cb;
+            Nan::Callback *event_cb;
             bool emit_buffer_ok;
         };
 
