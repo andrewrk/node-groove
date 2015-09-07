@@ -55,7 +55,7 @@ it("update metadata", function(done) {
         file.setMetadata('foo new key', "libgroove rules!");
         assert.strictEqual(file.getMetadata('foo new key'), 'libgroove rules!');
         file.save(function(err) {
-            assert.ok(!err);
+            if (err) throw err;
             file.close(checkUpdate);
         });
     }
@@ -108,7 +108,10 @@ it("playlist item ids", function(done) {
 it("create, attach, detach player", function(done) {
     var playlist = groove.createPlaylist();
     var player = groove.createPlayer();
-    player.deviceIndex = groove.DUMMY_DEVICE;
+    groove.connectSoundBackend();
+    var devices = groove.getDevices();
+    var defaultDevice = devices.list[devices.defaultIndex];
+    player.device = defaultDevice;
     player.attach(playlist, function(err) {
         assert.ok(!err);
         player.detach(function(err) {
@@ -150,6 +153,18 @@ it("create, attach, detach fingerprinter", function(done) {
     fingerprinter.attach(playlist, function(err) {
         assert.ok(!err);
         fingerprinter.detach(function(err) {
+            assert.ok(!err);
+            done();
+        });
+    });
+});
+
+it("create, attach, detach waveform builder", function(done) {
+    var playlist = groove.createPlaylist();
+    var waveform = groove.createWaveformBuilder();
+    waveform.attach(playlist, function(err) {
+        assert.ok(!err);
+        waveform.detach(function(err) {
             assert.ok(!err);
             done();
         });

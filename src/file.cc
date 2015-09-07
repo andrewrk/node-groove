@@ -310,8 +310,8 @@ static void SaveAfter(uv_work_t *req) {
 
     const unsigned argc = 1;
     Local<Value> argv[argc];
-    if (r->ret < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("save failed").ToLocalChecked());
+    if (r->ret) {
+        argv[0] = Exception::Error(Nan::New<String>(groove_strerror(r->ret)).ToLocalChecked());
     } else {
         argv[0] = Nan::Null();
     }
