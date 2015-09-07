@@ -30,6 +30,7 @@ class GNFile : public node::ObjectWrap {
         static NAN_METHOD(Metadata);
         static NAN_METHOD(ShortNames);
         static NAN_METHOD(Save);
+        static NAN_METHOD(OverrideDuration);
 };
 
 #endif

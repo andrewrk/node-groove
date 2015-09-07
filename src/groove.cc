@@ -7,6 +7,7 @@
 #include "playlist_item.h"
 #include "loudness_detector.h"
 #include "fingerprinter.h"
+#include "waveform_builder.h"
 #include "encoder.h"
 #include "device.h"
 
@@ -123,6 +124,7 @@ NAN_MODULE_INIT(Initialize) {
     GNEncoder::Init();
     GNFingerprinter::Init();
     GNDevice::Init();
+    GNWaveformBuilder::Init();
 
     SetProperty(target, "LOG_QUIET", GROOVE_LOG_QUIET);
     SetProperty(target, "LOG_ERROR", GROOVE_LOG_ERROR);
@@ -158,6 +160,7 @@ NAN_MODULE_INIT(Initialize) {
     SetMethod(target, "createLoudnessDetector", GNLoudnessDetector::Create);
     SetMethod(target, "createEncoder", GNEncoder::Create);
     SetMethod(target, "createFingerprinter", GNFingerprinter::Create);
+    SetMethod(target, "createWaveformBuilder", GNWaveformBuilder::Create);
 
     SetMethod(target, "encodeFingerprint", GNFingerprinter::Encode);
     SetMethod(target, "decodeFingerprint", GNFingerprinter::Decode);

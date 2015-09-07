@@ -28,6 +28,7 @@ void GNFile::Init() {
     Nan::SetPrototypeMethod(tpl, "shortNames", ShortNames);
     Nan::SetPrototypeMethod(tpl, "save", Save);
     Nan::SetPrototypeMethod(tpl, "duration", Duration);
+    Nan::SetPrototypeMethod(tpl, "overrideDuration", OverrideDuration);
 
     constructor.Reset(tpl->GetFunction());
 }
@@ -130,6 +131,19 @@ NAN_METHOD(GNFile::SetMetadata) {
         return;
     }
     return;
+}
+
+NAN_METHOD(GNFile::OverrideDuration) {
+    GNFile *gn_file = node::ObjectWrap::Unwrap<GNFile>(info.This());
+
+    if (info.Length() < 1 || !info[0]->IsNumber()) {
+        Nan::ThrowTypeError("Expected number arg[0]");
+        return;
+    }
+
+    double duration = info[0]->NumberValue();
+
+    gn_file->file->override_duration = duration;
 }
 
 NAN_METHOD(GNFile::Metadata) {

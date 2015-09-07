@@ -3,6 +3,7 @@
     {
         "target_name": "groove",
         "sources": [
+          "src/waveform_builder.cc",
           "src/groove.cc",
           "src/file.cc",
           "src/playlist.cc",

@@ -19,3 +19,4 @@
    calling `groove.getDevices()`.
  * After calling `groove.createPlaylist` you must call `playlist.destroy` when finished
    with the playlist.
+ * Add `GrooveWaveformBuilder` for creating waveform visualizations

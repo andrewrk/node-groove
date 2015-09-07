@@ -44,6 +44,7 @@ groove.open("danse-macabre.ogg", function(err, file) {
  * example/transcode.js - convert and splice several files together
  * example/fingerprint.js - create an acoustid fingerprint for media files
  * example/devices.js - list the playback devices on the system
+ * example/waveform.js - calculate a waveformjs compatible representation of a media file
 
 ## API Documentation
 
@@ -120,6 +121,14 @@ Boolean whether `save` will do anything.
 #### file.filename
 
 The string that was passed to `groove.open`
+
+#### file.overrideDuration(duration)
+
+If you know for sure the actual duration of the file, call this function
+to set the actual duration in seconds of the file. `GrooveWaveformBuilder`
+will use this value instead of `file.duration()`.
+
+This must only be called when no `GroovePlaylistItem` references to this file.
 
 #### file.save(callback)
 
@@ -568,6 +577,57 @@ Returns `{item, pos}` where `item` is the playlist item currently being
 fingerprinted and `pos` is how many seconds into the song the printer head is.
 
 #### printer.on('info', handler)
+
+`handler()`
+
+Emitted when there is info available to get. You still need to get the info
+with `getInfo()`.
+
+### GrooveWaveformBuilder
+
+#### groove.createWaveformBuilder()
+
+returns a GrooveWaveformBuilder
+
+#### waveform.widthInFrames
+
+How many frames wide the waveform data will be. Defaults to 1920.
+
+If you have a song with 100 frames and `widthInFrames` is 50, then each
+waveform data frame will correspond to 2 frames of the original song.
+
+#### printer.infoQueueSizeBytes
+
+Set this to determine how far ahead into the playlist to look.
+
+#### waveform.attach(playlist, callback)
+
+`callback(err)`
+
+#### waveform.detach(callback)
+
+`callback(err)`
+
+#### waveform.getInfo()
+
+Returns `null` if no info available, or an object with these properties:
+
+ * `buffer` - A `Buffer` of the waveform data, one unsigned 8 bit integer per
+   `widthInFrames`.
+ * `expectedDuration` - This is the duration in seconds that was used to create
+   the waveform data. If this is different than `actualDuration` then the data
+   is invalid and must be re-calculated, this time using `file.overrideDuration()`
+ * `actualDuration` - This is the correct duration in seconds for the track,
+   known only after waveform calculation is complete.
+ * `item` - the GroovePlaylistItem that this applies to, or `null` if this info
+   signals the end of playlist.
+
+#### waveform.position()
+
+Returns `{item, pos}` where `item` is the playlist item currently being
+calculated and `pos` is how many seconds into the song the waveform head is.
+
+#### waveform.on('info', handler)
 
 `handler()`
 
