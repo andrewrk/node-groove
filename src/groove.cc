@@ -1,6 +1,7 @@
 #include <node.h>
 #include <nan.h>
 #include <cstdlib>
+#include "groove.h"
 #include "file.h"
 #include "player.h"
 #include "playlist.h"
@@ -14,6 +15,11 @@
 using namespace v8;
 
 static SoundIo *soundio = NULL;
+static Groove *groove = NULL;
+
+Groove *get_groove() {
+    return groove;
+}
 
 NAN_METHOD(SetLogging) {
     Nan::HandleScope scope;
@@ -107,13 +113,23 @@ static void SetMethod(target_t obj, const char* name, FNPTR fn) {
 }
 
 static void cleanup(void) {
-    groove_finish();
+    groove_destroy(groove);
     soundio_destroy(soundio);
 }
 
 NAN_MODULE_INIT(Initialize) {
+    int err;
+
     soundio = soundio_create();
-    groove_init();
+    if (!soundio) {
+        fprintf(stderr, "unable to initialize libsoundio: out of memory\n");
+        abort();
+    }
+
+    if ((err = groove_create(&groove))) {
+        fprintf(stderr, "unable to initialize libgroove: %s\n", groove_strerror(err));
+        abort();
+    }
     atexit(cleanup);
 
     GNFile::Init();
@@ -140,7 +156,11 @@ NAN_MODULE_INIT(Initialize) {
 
     SetProperty(target, "_EVENT_NOWPLAYING", GROOVE_EVENT_NOWPLAYING);
     SetProperty(target, "_EVENT_BUFFERUNDERRUN", GROOVE_EVENT_BUFFERUNDERRUN);
-    SetProperty(target, "_EVENT_DEVICEREOPENED", GROOVE_EVENT_DEVICEREOPENED);
+    SetProperty(target, "_EVENT_DEVICE_CLOSED", GROOVE_EVENT_DEVICE_CLOSED);
+    SetProperty(target, "_EVENT_DEVICE_OPENED", GROOVE_EVENT_DEVICE_OPENED);
+    SetProperty(target, "_EVENT_DEVICE_OPEN_ERROR", GROOVE_EVENT_DEVICE_OPEN_ERROR);
+    SetProperty(target, "_EVENT_END_OF_PLAYLIST", GROOVE_EVENT_END_OF_PLAYLIST);
+    SetProperty(target, "_EVENT_WAKEUP", GROOVE_EVENT_WAKEUP);
 
     SetProperty(target, "BACKEND_JACK", SoundIoBackendJack);
     SetProperty(target, "BACKEND_PULSEAUDIO", SoundIoBackendPulseAudio);

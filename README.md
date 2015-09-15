@@ -328,39 +328,6 @@ properties.
 Before calling `attach()`, set this to one of the devices
 returned from `groove.getDevices()`.
 
-#### player.targetAudioFormat
-
-The desired audio format settings with which to open the device.
-`groove.createPlayer()` defaults these to 44100 Hz,
-signed 16-bit int, stereo.
-These are preferences; if a setting cannot be used, a substitute will
-be used instead. In this case, actualAudioFormat will be updated to reflect
-the substituted values.
-
-Properties:
-
- * `sampleRate`
- * `channelLayout` - array of channel ids
- * `sampleFormat`
-
-#### player.actualAudioFormat
-
-groove sets this to the actual format you get when you open the device.
-Ideally will be the same as targetAudioFormat but might not be.
-
-Properties:
-
- * `sampleRate`
- * `channelLayout` - array of channel ids
- * `sampleFormat`
-
-#### player.useExactAudioFormat
-
-If you set this to `true`, `targetAudioFormat` and `actualAudioFormat` are
-ignored and no resampling, channel layout remapping, or sample format
-conversion will occur. The audio device will be reopened with exact parameters
-whenever necessary.
-
 #### player.attach(playlist, callback)
 
 Sends audio to sound device.

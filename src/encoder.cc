@@ -2,6 +2,7 @@
 #include "encoder.h"
 #include "playlist.h"
 #include "playlist_item.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -64,12 +65,7 @@ struct AttachReq {
     GNEncoder::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle
-#if UV_VERSION_MAJOR == 0
-        , int status
-#endif
-        )
-{
+static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
     GNEncoder::EventContext *context = reinterpret_cast<GNEncoder::EventContext *>(handle->data);
@@ -133,8 +129,8 @@ static void AttachAsync(uv_work_t *req) {
     uv_cond_init(&context->cond);
     uv_mutex_init(&context->mutex);
 
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
     context->event_async.data = context;
+    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
 
     uv_thread_create(&context->event_thread, EventThreadEntry, context);
 }
@@ -191,7 +187,7 @@ NAN_METHOD(GNEncoder::Create) {
         return;
     }
 
-    GrooveEncoder *encoder = groove_encoder_create();
+    GrooveEncoder *encoder = groove_encoder_create(get_groove());
     Local<Object> instance = NewInstance(encoder)->ToObject();
     GNEncoder *gn_encoder = node::ObjectWrap::Unwrap<GNEncoder>(instance);
     EventContext *context = new EventContext;

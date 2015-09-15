@@ -1,5 +1,6 @@
 #include <node.h>
 #include "file.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -173,42 +174,32 @@ NAN_METHOD(GNFile::Duration) {
     info.GetReturnValue().Set(Nan::New<Number>(groove_file_duration(gn_file->file)));
 }
 
-struct CloseReq {
-    uv_work_t req;
-    Nan::Callback *callback;
+class CloseWorker : public Nan::AsyncWorker {
+public:
+    CloseWorker(Nan::Callback *callback, GrooveFile *file) : Nan::AsyncWorker(callback) {
+        this->file = file;
+    }
+    ~CloseWorker() {}
+
+    void Execute() {
+        groove_file_destroy(file);
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+
+        if (file) {
+            Local<Value> argv[] = {Nan::Null()};
+            callback->Call(1, argv);
+        } else {
+            Local<Value> argv[] = {Exception::Error(Nan::New<String>("file already closed").ToLocalChecked())};
+            callback->Call(1, argv);
+        }
+    }
+
     GrooveFile *file;
+
 };
-
-static void CloseAsync(uv_work_t *req) {
-    CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
-    if (r->file) {
-        groove_file_close(r->file);
-    }
-}
-
-static void CloseAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    CloseReq *r = reinterpret_cast<CloseReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->file) {
-        argv[0] = Nan::Null();
-    } else {
-        argv[0] = Exception::Error(Nan::New<String>("file already closed").ToLocalChecked());
-    }
-
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
 
 NAN_METHOD(GNFile::Close) {
     Nan::HandleScope scope;
@@ -220,54 +211,46 @@ NAN_METHOD(GNFile::Close) {
         return;
     }
 
-    CloseReq *request = new CloseReq;
-
-    request->callback = new Nan::Callback(info[0].As<Function>());
-    request->file = gn_file->file;
-    request->req.data = request;
+    Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+    AsyncQueueWorker(new CloseWorker(callback, gn_file->file));
 
     gn_file->file = NULL;
-    uv_queue_work(uv_default_loop(), &request->req, CloseAsync, (uv_after_work_cb)CloseAfter);
-
-    return;
 }
 
-struct OpenReq {
-    uv_work_t req;
+class OpenWorker : public Nan::AsyncWorker {
+public:
+    OpenWorker(Nan::Callback *callback, String::Utf8Value *filename) : Nan::AsyncWorker(callback) {
+        this->filename = filename;
+    }
+    ~OpenWorker() {
+        delete filename;
+    }
+
+    void Execute() {
+        file = groove_file_create(get_groove());
+        if (!file) {
+            err = GrooveErrorNoMem;
+            return;
+        }
+        err = groove_file_open(file, **filename, **filename);
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+
+        if (err) {
+            Local<Value> argv[] = {Exception::Error(Nan::New<String>(groove_strerror(err)).ToLocalChecked())};
+            callback->Call(1, argv);
+        } else {
+            Local<Value> argv[] = {Nan::Null(), GNFile::NewInstance(file)};
+            callback->Call(2, argv);
+        }
+    }
+
     GrooveFile *file;
     String::Utf8Value *filename;
-    Nan::Callback *callback;
+    int err;
 };
-
-static void OpenAsync(uv_work_t *req) {
-    OpenReq *r = reinterpret_cast<OpenReq *>(req->data);
-    r->file = groove_file_open(**r->filename);
-}
-
-static void OpenAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-    OpenReq *r = reinterpret_cast<OpenReq *>(req->data);
-
-    Local<Value> argv[2];
-    if (r->file) {
-        argv[0] = Nan::Null();
-        argv[1] = GNFile::NewInstance(r->file);
-    } else {
-        argv[0] = Exception::Error(Nan::New<String>("open file failed").ToLocalChecked());
-        argv[1] = Nan::Null();
-    }
-    TryCatch try_catch;
-    r->callback->Call(2, argv);
-
-    // cleanup
-    delete r->filename;
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
 
 NAN_METHOD(GNFile::Open) {
     Nan::HandleScope scope;
@@ -280,51 +263,37 @@ NAN_METHOD(GNFile::Open) {
         Nan::ThrowTypeError("Expected function arg[1]");
         return;
     }
-    OpenReq *request = new OpenReq;
-
-    request->filename = new String::Utf8Value(info[0]->ToString());
-    request->callback = new Nan::Callback(info[1].As<Function>());
-    request->req.data = request;
-
-    uv_queue_work(uv_default_loop(), &request->req, OpenAsync, (uv_after_work_cb)OpenAfter);
-
-    return;
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
+    String::Utf8Value *filename = new String::Utf8Value(info[0]->ToString());
+    AsyncQueueWorker(new OpenWorker(callback, filename));
 }
 
-struct SaveReq {
-    uv_work_t req;
-    Nan::Callback *callback;
+class SaveWorker : public Nan::AsyncWorker {
+public:
+    SaveWorker(Nan::Callback *callback, GrooveFile *file) : Nan::AsyncWorker(callback) {
+        this->file = file;
+    }
+    ~SaveWorker() { }
+
+    void Execute() {
+        err = groove_file_save(file);
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+
+        if (err) {
+            Local<Value> argv[] = {Exception::Error(Nan::New<String>(groove_strerror(err)).ToLocalChecked())};
+            callback->Call(1, argv);
+        } else {
+            Local<Value> argv[] = {Nan::Null()};
+            callback->Call(1, argv);
+        }
+    }
+
     GrooveFile *file;
-    int ret;
+    int err;
 };
-
-static void SaveAsync(uv_work_t *req) {
-    SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
-    r->ret = groove_file_save(r->file);
-}
-
-static void SaveAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    SaveReq *r = reinterpret_cast<SaveReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->ret) {
-        argv[0] = Exception::Error(Nan::New<String>(groove_strerror(r->ret)).ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
-    }
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
 
 NAN_METHOD(GNFile::Save) {
     Nan::HandleScope scope;
@@ -336,13 +305,6 @@ NAN_METHOD(GNFile::Save) {
         return;
     }
 
-    SaveReq *request = new SaveReq;
-
-    request->callback = new Nan::Callback(info[0].As<Function>());
-    request->file = gn_file->file;
-    request->req.data = request;
-
-    uv_queue_work(uv_default_loop(), &request->req, SaveAsync, (uv_after_work_cb)SaveAfter);
-
-    return;
+    Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+    AsyncQueueWorker(new SaveWorker(callback, gn_file->file));
 }

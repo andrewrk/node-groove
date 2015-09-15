@@ -20,3 +20,11 @@
  * After calling `groove.createPlaylist` you must call `playlist.destroy` when finished
    with the playlist.
  * Add `GrooveWaveformBuilder` for creating waveform visualizations
+ * player: 'nowplaying' event renamed to 'nowPlaying'
+ * player: 'bufferunderrun' event renamed to 'bufferUnderrun'
+ * player: add more events: 'deviceClosed', 'deviceOpened', 'deviceOpenError',
+   'endOfPlaylist', 'wakeup'.
+ * player: `targetAudioFormat`, `actualAudioFormat`, and `useExactAudioFormat`
+   no longer exist. Instead, the player always opens the device with exactly the
+   correct audio parameters for each song, or if the device doesn't support that,
+   the next best in terms of audio quality.

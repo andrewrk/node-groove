@@ -13,7 +13,7 @@ var devices = groove.getDevices();
 var defaultDevice = devices.list[devices.defaultIndex];
 player.device = defaultDevice;
 
-player.on('nowplaying', function() {
+player.on('nowPlaying', function() {
   var current = player.position();
   if (!current.item) {
     cleanup();

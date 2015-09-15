@@ -1,6 +1,7 @@
 #include "waveform_builder.h"
 #include "playlist_item.h"
 #include "playlist.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -55,7 +56,7 @@ NAN_METHOD(GNWaveformBuilder::Create) {
         return;
     }
 
-    GrooveWaveform *waveform = groove_waveform_create();
+    GrooveWaveform *waveform = groove_waveform_create(get_groove());
     if (!waveform) {
         Nan::ThrowTypeError("unable to create waveform builder");
         return;
@@ -156,12 +157,7 @@ struct AttachReq {
     GNWaveformBuilder::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle
-#if UV_VERSION_MAJOR == 0
-        , int status
-#endif
-        )
-{
+static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
     GNWaveformBuilder::EventContext *context = reinterpret_cast<GNWaveformBuilder::EventContext *>(handle->data);
@@ -204,8 +200,8 @@ static void AttachAsync(uv_work_t *req) {
     uv_cond_init(&context->cond);
     uv_mutex_init(&context->mutex);
 
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
     context->event_async.data = context;
+    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
 
     uv_thread_create(&context->event_thread, EventThreadEntry, context);
 }

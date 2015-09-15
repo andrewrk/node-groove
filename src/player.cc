@@ -3,6 +3,7 @@
 #include "playlist.h"
 #include "playlist_item.h"
 #include "device.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -92,22 +93,7 @@ NAN_METHOD(GNPlayer::Position) {
     info.GetReturnValue().Set(obj);
 }
 
-struct AttachReq {
-    uv_work_t req;
-    Nan::Callback *callback;
-    GroovePlayer *player;
-    GroovePlaylist *playlist;
-    int errcode;
-    Nan::Persistent<Object> instance;
-    GNPlayer::EventContext *event_context;
-};
-
-static void EventAsyncCb(uv_async_t *handle
-#if UV_VERSION_MAJOR == 0
-        , int status
-#endif
-        )
-{
+static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
     GNPlayer::EventContext *context = reinterpret_cast<GNPlayer::EventContext *>(handle->data);
@@ -143,63 +129,49 @@ static void EventThreadEntry(void *arg) {
     }
 }
 
-static void AttachAsync(uv_work_t *req) {
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
+class AttachWorker : public Nan::AsyncWorker {
+public:
+    AttachWorker(Nan::Callback *callback, GroovePlayer *player, GroovePlaylist *playlist,
+            GNPlayer::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->player = player;
+        this->playlist = playlist;
+        this->event_context = event_context;
+    }
+    ~AttachWorker() {}
 
-    r->errcode = groove_player_attach(r->player, r->playlist);
+    void Execute() {
+        err = groove_player_attach(player, playlist);
 
-    GNPlayer::EventContext *context = r->event_context;
+        GNPlayer::EventContext *context = event_context;
 
-    uv_cond_init(&context->cond);
-    uv_mutex_init(&context->mutex);
+        uv_cond_init(&context->cond);
+        uv_mutex_init(&context->mutex);
 
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
-    context->event_async.data = context;
+        context->event_async.data = context;
+        uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
 
-    uv_thread_create(&context->event_thread, EventThreadEntry, context);
-}
+        uv_thread_create(&context->event_thread, EventThreadEntry, context);
+    }
 
-static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
 
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("player attach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
-
-        Local<Object> actualAudioFormat = Nan::New<Object>();
-        Nan::Set(actualAudioFormat, Nan::New<String>("sampleRate").ToLocalChecked(),
-                Nan::New<Number>(r->player->actual_audio_format.sample_rate));
-
-        Local<Array> layout = Nan::New<Array>();
-        for (int ch = 0; ch < r->player->actual_audio_format.layout.channel_count; ch += 1) {
-            Nan::Set(layout, Nan::New<Number>(ch),
-                    Nan::New<Number>(r->player->actual_audio_format.layout.channels[ch]));
+        if (err) {
+            Local<Value> argv[] = {Exception::Error(Nan::New<String>(groove_strerror(err)).ToLocalChecked())};
+            callback->Call(1, argv);
+        } else {
+            Local<Value> argv[] = {Nan::Null()};
+            callback->Call(1, argv);
         }
-        Nan::Set(actualAudioFormat, Nan::New<String>("channelLayout").ToLocalChecked(), layout);
-
-        Nan::Set(actualAudioFormat, Nan::New<String>("sampleFormat").ToLocalChecked(),
-                Nan::New<Number>(r->player->actual_audio_format.format));
-
-        Local<Object> o = Nan::New(r->instance);
-        Nan::Set(o, Nan::New<String>("actualAudioFormat").ToLocalChecked(), actualAudioFormat);
-        r->instance.Reset(o);
     }
 
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    r->instance.Reset();
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
+    int err;
+    GroovePlayer *player;
+    GroovePlaylist *playlist;
+    GNPlayer::EventContext *event_context;
+};
 
 NAN_METHOD(GNPlayer::Create) {
     Nan::HandleScope scope;
@@ -209,7 +181,7 @@ NAN_METHOD(GNPlayer::Create) {
         return;
     }
 
-    GroovePlayer *player = groove_player_create();
+    GroovePlayer *player = groove_player_create(get_groove());
     Local<Object> instance = NewInstance(player)->ToObject();
     GNPlayer *gn_player = node::ObjectWrap::Unwrap<GNPlayer>(instance);
     EventContext *context = new EventContext;
@@ -217,27 +189,7 @@ NAN_METHOD(GNPlayer::Create) {
     context->event_cb = new Nan::Callback(info[0].As<Function>());
     context->player = player;
 
-    // set properties on the instance with default values from
-    // GroovePlayer struct
-    Local<Object> targetAudioFormat = Nan::New<Object>();
-    Nan::Set(targetAudioFormat, Nan::New<String>("sampleRate").ToLocalChecked(),
-            Nan::New<Number>(player->target_audio_format.sample_rate));
-    Local<Array> layout = Nan::New<Array>();
-    for (int ch = 0; ch < player->target_audio_format.layout.channel_count; ch += 1) {
-        Nan::Set(layout, Nan::New<Number>(ch),
-                Nan::New<Number>(player->target_audio_format.layout.channels[ch]));
-    }
-    Nan::Set(targetAudioFormat, Nan::New<String>("channelLayout").ToLocalChecked(), layout);
-
-    Nan::Set(targetAudioFormat, Nan::New<String>("sampleFormat").ToLocalChecked(),
-            Nan::New<Number>(player->target_audio_format.format));
-
-
     Nan::Set(instance, Nan::New<String>("device").ToLocalChecked(), Nan::Null());
-    Nan::Set(instance, Nan::New<String>("actualAudioFormat").ToLocalChecked(), Nan::Null());
-    Nan::Set(instance, Nan::New<String>("targetAudioFormat").ToLocalChecked(), targetAudioFormat);
-
-    Nan::Set(instance, Nan::New<String>("useExactAudioFormat").ToLocalChecked(), Nan::New<Boolean>(false));
 
     info.GetReturnValue().Set(instance);
 }
@@ -255,27 +207,13 @@ NAN_METHOD(GNPlayer::Attach) {
         Nan::ThrowTypeError("Expected function arg[1]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
 
     Local<Object> instance = info.This();
-    Local<Value> targetAudioFormatValue = instance->Get(Nan::New<String>("targetAudioFormat").ToLocalChecked());
-    if (!targetAudioFormatValue->IsObject()) {
-        Nan::ThrowTypeError("Expected targetAudioFormat to be an object");
-        return;
-    }
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
 
-    AttachReq *request = new AttachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[1].As<Function>());
-
-    request->instance.Reset(info.This());
-
-    request->playlist = gn_playlist->playlist;
     GroovePlayer *player = gn_player->player;
-    request->player = player;
-    request->event_context = gn_player->event_context;
 
     // copy the properties from our instance to the player
     Local<Value> deviceObject = instance->Get(Nan::New<String>("device").ToLocalChecked());
@@ -286,28 +224,7 @@ NAN_METHOD(GNPlayer::Attach) {
     GNDevice *gn_device = node::ObjectWrap::Unwrap<GNDevice>(deviceObject->ToObject());
     player->device = gn_device->device;
 
-    Local<Value> useExactAudioFormat = instance->Get(Nan::New<String>("useExactAudioFormat").ToLocalChecked());
-    player->use_exact_audio_format = useExactAudioFormat->BooleanValue();
-
-
-    Local<Object> targetAudioFormat = targetAudioFormatValue->ToObject();
-    Local<Array> layout = Local<Array>::Cast(
-            targetAudioFormat->Get(Nan::New<String>("channelLayout").ToLocalChecked()));
-    player->target_audio_format.layout.channel_count = layout->Length();
-    for (int ch = 0; ch < player->target_audio_format.layout.channel_count; ch += 1) {
-        Local<Value> channelId = layout->Get(Nan::New<Number>(ch));
-        player->target_audio_format.layout.channels[ch] = (SoundIoChannelId)(int)channelId->NumberValue();
-    }
-
-    Local<Value> sampleRate = targetAudioFormat->Get(Nan::New<String>("sampleRate").ToLocalChecked());
-    double sample_rate = sampleRate->NumberValue();
-    player->target_audio_format.sample_rate = (int)sample_rate;
-
-    double sample_fmt = targetAudioFormat->Get(Nan::New<String>("sampleFormat").ToLocalChecked())->NumberValue();
-    player->target_audio_format.format = (enum SoundIoFormat)(int)sample_fmt;
-
-    uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
-            (uv_after_work_cb)AttachAfter);
+    AsyncQueueWorker(new AttachWorker(callback, player, gn_playlist->playlist, gn_player->event_context));
 }
 
 struct DetachReq {

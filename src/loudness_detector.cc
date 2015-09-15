@@ -1,6 +1,7 @@
 #include "loudness_detector.h"
 #include "playlist_item.h"
 #include "playlist.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -55,7 +56,7 @@ NAN_METHOD(GNLoudnessDetector::Create) {
         return;
     }
 
-    GrooveLoudnessDetector *detector = groove_loudness_detector_create();
+    GrooveLoudnessDetector *detector = groove_loudness_detector_create(get_groove());
     if (!detector) {
         Nan::ThrowTypeError("unable to create loudness detector");
         return;
@@ -134,12 +135,7 @@ struct AttachReq {
     GNLoudnessDetector::EventContext *event_context;
 };
 
-static void EventAsyncCb(uv_async_t *handle
-#if UV_VERSION_MAJOR == 0
-        , int status
-#endif
-        )
-{
+static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
     GNLoudnessDetector::EventContext *context = reinterpret_cast<GNLoudnessDetector::EventContext *>(handle->data);
@@ -182,8 +178,8 @@ static void AttachAsync(uv_work_t *req) {
     uv_cond_init(&context->cond);
     uv_mutex_init(&context->mutex);
 
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
     context->event_async.data = context;
+    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
 
     uv_thread_create(&context->event_thread, EventThreadEntry, context);
 }

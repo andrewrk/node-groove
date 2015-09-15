@@ -22,7 +22,7 @@ it("logging", function() {
 
 it("open fails for bogus file", function(done) {
     groove.open(bogusFile, function(err, file) {
-        assert.strictEqual(err.message, "open file failed");
+        assert.strictEqual(err.message, "unknown format");
         done();
     });
 });
@@ -39,7 +39,7 @@ it("open file and read metadata", function(done) {
         assert.strictEqual(file.getMetadata('initial key'), 'C');
         assert.equal(file.getMetadata('bogus nonexisting tag'), null);
         file.close(function(err) {
-            assert.ok(!err);
+            if (err) throw err;
             done();
         });
     });
@@ -51,7 +51,7 @@ it("update metadata", function(done) {
         groove.open(rwTestOgg, doUpdate);
     });
     function doUpdate(err, file) {
-        assert.ok(!err);
+        if (err) throw err;
         file.setMetadata('foo new key', "libgroove rules!");
         assert.strictEqual(file.getMetadata('foo new key'), 'libgroove rules!');
         file.save(function(err) {
@@ -80,7 +80,6 @@ it("create empty playlist", function (done) {
 it("create empty player", function (done) {
     var player = groove.createPlayer();
     assert.ok(player.id);
-    assert.strictEqual(player.targetAudioFormat.sampleRate, 44100);
     done();
 });
 

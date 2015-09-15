@@ -3,16 +3,16 @@
     {
         "target_name": "groove",
         "sources": [
-          "src/waveform_builder.cc",
+          "src/player.cc",
           "src/groove.cc",
           "src/file.cc",
           "src/playlist.cc",
-          "src/player.cc",
           "src/playlist_item.cc",
+          "src/waveform_builder.cc",
           "src/loudness_detector.cc",
           "src/fingerprinter.cc",
           "src/encoder.cc",
-          "src/device.cc"
+          "src/device.cc",
         ],
         "libraries": [
             "-lgroove"

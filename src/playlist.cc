@@ -2,6 +2,7 @@
 #include "playlist.h"
 #include "playlist_item.h"
 #include "file.h"
+#include "groove.h"
 
 using namespace v8;
 
@@ -218,7 +219,7 @@ NAN_METHOD(GNPlaylist::SetFillMode) {
 
 NAN_METHOD(GNPlaylist::Create) {
     Nan::HandleScope scope;
-    GroovePlaylist *playlist = groove_playlist_create();
+    GroovePlaylist *playlist = groove_playlist_create(get_groove());
     Local<Value> tmp = GNPlaylist::NewInstance(playlist);
     info.GetReturnValue().Set(tmp);
 }
