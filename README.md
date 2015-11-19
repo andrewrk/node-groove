@@ -5,8 +5,7 @@ generic music player backend library.
 
 Live discussion in `#libgroove` on [freenode](https://freenode.net/).
 
-node-groove contains 4 main interfaces. See API Documentation below for
-more details.
+Here are the main interfaces. See API Documentation below for more details.
 
  * GrooveFile - represents an open audio file.
  * GroovePlaylist - put files in the playlist, and the playlist decodes the
