@@ -5,6 +5,26 @@ generic music player backend library.
 
 Live discussion in `#libgroove` on [freenode](https://freenode.net/).
 
+node-groove contains 4 main interfaces. See API Documentation below for
+more details.
+
+ * GrooveFile - represents an open audio file.
+ * GroovePlaylist - put files in the playlist, and the playlist decodes the
+   files and fills up the attached sinks.
+ * GroovePlayer - attach this sink to a playlist to play the decoded audio over
+   the system's speakers.
+ * GrooveEncoder - attach this sink to a playlist to obtain encoded audio
+   buffers, such as an mp3 stream.
+ * GrooveLoudnessDetector - attach this sink to a playlist to compute how loud
+   files sound to the human ear, along with the "true peak" value. You can use
+   this to implement ReplayGain.
+ * GrooveFingerprinter - attach this sink to a playlist to compute an acoustid
+   fingerprint. This can be used to look up a file by its audio content and
+   figure out which tags should be applied.
+ * GrooveWaveformBuilder - attach this sink to a playlist to compute a JSON
+   representation of an audio file. This can be used to display a visualization
+   of the audio file.
+
 ## Usage
 
 1. Install libgroove to your system. libgroove is a set of 4 libraries;
