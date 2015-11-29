@@ -18,7 +18,7 @@ class GNLoudnessDetector : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GrooveLoudnessDetector *detector;
-            NanCallback *event_cb;
+            Nan::Callback *event_cb;
         };
 
         EventContext *event_context;

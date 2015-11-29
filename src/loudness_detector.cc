@@ -9,66 +9,56 @@ GNLoudnessDetector::~GNLoudnessDetector() {
     groove_loudness_detector_destroy(detector);
 };
 
-static v8::Persistent<v8::FunctionTemplate> constructor;
-
-template <typename target_t, typename func_t>
-static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(NanNew<String>(name), fn);
-}
-
-template <typename target_t, typename func_t>
-static void AddMethod(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->Set(NanNew<String>(name),
-            NanNew<FunctionTemplate>(fn)->GetFunction());
-}
+static Nan::Persistent<v8::Function> constructor;
 
 void GNLoudnessDetector::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-    tpl->SetClassName(NanNew<String>("GrooveLoudnessDetector"));
+    Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+    tpl->SetClassName(Nan::New<String>("GrooveLoudnessDetector").ToLocalChecked());
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
-    // Methods
-    AddMethod(tpl, "attach", Attach);
-    AddMethod(tpl, "detach", Detach);
-    AddMethod(tpl, "getInfo", GetInfo);
-    AddMethod(tpl, "position", Position);
 
-    NanAssignPersistent(constructor, tpl);
+    // Methods
+    Nan::SetPrototypeMethod(tpl, "attach", Attach);
+    Nan::SetPrototypeMethod(tpl, "detach", Detach);
+    Nan::SetPrototypeMethod(tpl, "getInfo", GetInfo);
+    Nan::SetPrototypeMethod(tpl, "position", Position);
+
+    constructor.Reset(tpl->GetFunction());
 }
 
 NAN_METHOD(GNLoudnessDetector::New) {
-    NanScope();
+    Nan::HandleScope();
 
     GNLoudnessDetector *obj = new GNLoudnessDetector();
-    obj->Wrap(args.This());
+    obj->Wrap(info.This());
     
-    NanReturnValue(args.This());
+    info.GetReturnValue().Set(info.This());
 }
 
 Handle<Value> GNLoudnessDetector::NewInstance(GrooveLoudnessDetector *detector) {
-    NanEscapableScope();
+    Nan::EscapableHandleScope scope;
 
-    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
-    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
+    Local<Function> cons = Nan::New(constructor);
+    Local<Object> instance = cons->NewInstance();
 
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(instance);
     gn_detector->detector = detector;
 
-    return NanEscapeScope(instance);
+    return scope.Escape(instance);
 }
 
 NAN_METHOD(GNLoudnessDetector::Create) {
-    NanScope();
+    Nan::HandleScope();
 
-    if (args.Length() < 1 || !args[0]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[0]");
+        return;
     }
 
     GrooveLoudnessDetector *detector = groove_loudness_detector_create();
     if (!detector) {
-        NanThrowTypeError("unable to create loudness detector");
-        NanReturnUndefined();
+        Nan::ThrowTypeError("unable to create loudness detector");
+        return;
     }
 
     // set properties on the instance with default values from
@@ -77,70 +67,72 @@ NAN_METHOD(GNLoudnessDetector::Create) {
     GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(instance);
     EventContext *context = new EventContext;
     gn_detector->event_context = context;
-    context->event_cb = new NanCallback(args[0].As<Function>());
+    context->event_cb = new Nan::Callback(info[0].As<Function>());
     context->detector = detector;
 
+    Nan::Set(instance, Nan::New<String>("infoQueueSize").ToLocalChecked(),
+            Nan::New<Number>(detector->info_queue_size));
+    Nan::Set(instance, Nan::New<String>("disableAlbum").ToLocalChecked(),
+            Nan::New<Boolean>(detector->disable_album));
+    Nan::Set(instance, Nan::New<String>("sinkBufferSize").ToLocalChecked(),
+            Nan::New<Boolean>(detector->sink_buffer_size));
 
-    instance->Set(NanNew<String>("infoQueueSize"), NanNew<Number>(detector->info_queue_size));
-    instance->Set(NanNew<String>("sinkBufferSize"), NanNew<Number>(detector->sink_buffer_size));
-    instance->Set(NanNew<String>("disableAlbum"), NanNew<Boolean>(detector->disable_album));
-
-    NanReturnValue(instance);
+    info.GetReturnValue().Set(instance);
 }
 
 NAN_METHOD(GNLoudnessDetector::Position) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(args.This());
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
     GrooveLoudnessDetector *detector = gn_detector->detector;
 
     GroovePlaylistItem *item;
     double pos;
     groove_loudness_detector_position(detector, &item, &pos);
 
-    Local<Object> obj = NanNew<Object>();
-    obj->Set(NanNew<String>("pos"), NanNew<Number>(pos));
+    Local<Object> obj = Nan::New<Object>();
+    Nan::Set(obj, Nan::New<String>("pos").ToLocalChecked(), Nan::New<Number>(pos));
     if (item) {
-        obj->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(item));
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(item));
     } else {
-        obj->Set(NanNew<String>("item"), NanNull());
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
     }
-    NanReturnValue(obj);
+    info.GetReturnValue().Set(obj);
 }
 
 NAN_METHOD(GNLoudnessDetector::GetInfo) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(args.This());
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
     GrooveLoudnessDetector *detector = gn_detector->detector;
 
-    GrooveLoudnessDetectorInfo info;
-    if (groove_loudness_detector_info_get(detector, &info, 0) == 1) {
-        Local<Object> object = NanNew<Object>();
+    GrooveLoudnessDetectorInfo loudness_info;
+    if (groove_loudness_detector_info_get(detector, &loudness_info, 0) == 1) {
+        Local<Object> object = Nan::New<Object>();
 
-        object->Set(NanNew<String>("loudness"), NanNew<Number>(info.loudness));
-        object->Set(NanNew<String>("peak"), NanNew<Number>(info.peak));
-        object->Set(NanNew<String>("duration"), NanNew<Number>(info.duration));
+        Nan::Set(object, Nan::New<String>("loudness").ToLocalChecked(), Nan::New<Number>(loudness_info.loudness));
+        Nan::Set(object, Nan::New<String>("peak").ToLocalChecked(), Nan::New<Number>(loudness_info.peak));
+        Nan::Set(object, Nan::New<String>("duration").ToLocalChecked(), Nan::New<Number>(loudness_info.duration));
 
-        if (info.item) {
-            object->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(info.item));
+        if (loudness_info.item) {
+            Nan::Set(object, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(loudness_info.item));
         } else {
-            object->Set(NanNew<String>("item"), NanNull());
+            Nan::Set(object, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
         }
 
-        NanReturnValue(object);
+        info.GetReturnValue().Set(object);
     } else {
-        NanReturnNull();
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
 
 struct AttachReq {
     uv_work_t req;
-    NanCallback *callback;
+    Nan::Callback *callback;
     GrooveLoudnessDetector *detector;
     GroovePlaylist *playlist;
     int errcode;
-    Persistent<Object> instance;
+    Nan::Persistent<Object> instance;
     GNLoudnessDetector::EventContext *event_context;
 };
 
@@ -150,15 +142,15 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    NanScope();
+    Nan::HandleScope();
 
     GNLoudnessDetector::EventContext *context = reinterpret_cast<GNLoudnessDetector::EventContext *>(handle->data);
 
     // call callback signaling that there is info ready
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
-    argv[0] = NanNull();
+    Local<Value> argv[argc];
+    argv[0] = Nan::Null();
 
     TryCatch try_catch;
     context->event_cb->Call(argc, argv);
@@ -199,22 +191,22 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    NanScope();
+    Nan::HandleScope();
 
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
+    Local<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(NanNew<String>("loudness detector attach failed"));
+        argv[0] = Exception::Error(Nan::New<String>("loudness detector attach failed").ToLocalChecked());
     } else {
-        argv[0] = NanNull();
+        argv[0] = Nan::Null();
     }
 
     TryCatch try_catch;
     r->callback->Call(argc, argv);
 
-    NanDisposePersistent(r->instance);
+    r->instance.Reset();
     delete r->callback;
     delete r;
 
@@ -224,29 +216,29 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNLoudnessDetector::Attach) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(args.This());
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
 
-    if (args.Length() < 1 || !args[0]->IsObject()) {
-        NanThrowTypeError("Expected object arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsObject()) {
+        Nan::ThrowTypeError("Expected object arg[0]");
+        return;
     }
-    if (args.Length() < 2 || !args[1]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[1]");
-        NanReturnUndefined();
+    if (info.Length() < 2 || !info[1]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[1]");
+        return;
     }
 
-    Local<Object> instance = args.This();
+    Local<Object> instance = info.This();
 
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args[0]->ToObject());
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
 
     AttachReq *request = new AttachReq;
 
     request->req.data = request;
-    request->callback = new NanCallback(args[1].As<Function>());
+    request->callback = new Nan::Callback(info[1].As<Function>());
 
-    NanAssignPersistent(request->instance, args.This());
+    request->instance.Reset(info.This());
 
     request->playlist = gn_playlist->playlist;
     GrooveLoudnessDetector *detector = gn_detector->detector;
@@ -254,20 +246,20 @@ NAN_METHOD(GNLoudnessDetector::Attach) {
     request->event_context = gn_detector->event_context;
 
     // copy the properties from our instance to the player
-    detector->info_queue_size = (int)instance->Get(NanNew<String>("infoQueueSize"))->NumberValue();
-    detector->sink_buffer_size = (int)instance->Get(NanNew<String>("sinkBufferSize"))->NumberValue();
-    detector->disable_album = (int)instance->Get(NanNew<String>("disableAlbum"))->BooleanValue();
+    detector->info_queue_size = (int)instance->Get(Nan::New<String>("infoQueueSize").ToLocalChecked())->NumberValue();
+    detector->sink_buffer_size = (int)instance->Get(Nan::New<String>("sinkBufferSize").ToLocalChecked())->BooleanValue();
+    detector->disable_album = (int)instance->Get(Nan::New<String>("disableAlbum").ToLocalChecked())->BooleanValue();
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
 
-    NanReturnUndefined();
+    return;
 }
 
 struct DetachReq {
     uv_work_t req;
     GrooveLoudnessDetector *detector;
-    NanCallback *callback;
+    Nan::Callback *callback;
     int errcode;
     GNLoudnessDetector::EventContext *event_context;
 };
@@ -289,16 +281,16 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    NanScope();
+    Nan::HandleScope();
 
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
+    Local<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(NanNew<String>("loudness detector detach failed"));
+        argv[0] = Exception::Error(Nan::New<String>("loudness detector detach failed").ToLocalChecked());
     } else {
-        argv[0] = NanNull();
+        argv[0] = Nan::Null();
     }
     TryCatch try_catch;
     r->callback->Call(argc, argv);
@@ -312,23 +304,23 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNLoudnessDetector::Detach) {
-    NanScope();
-    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(args.This());
+    Nan::HandleScope();
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
 
-    if (args.Length() < 1 || !args[0]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[0]");
+        return;
     }
 
     DetachReq *request = new DetachReq;
 
     request->req.data = request;
-    request->callback = new NanCallback(args[0].As<Function>());
+    request->callback = new Nan::Callback(info[0].As<Function>());
     request->detector = gn_detector->detector;
     request->event_context = gn_detector->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
 
-    NanReturnUndefined();
+    return;
 }

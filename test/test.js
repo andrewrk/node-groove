@@ -55,7 +55,7 @@ it("update metadata", function(done) {
         file.setMetadata('foo new key', "libgroove rules!");
         assert.strictEqual(file.getMetadata('foo new key'), 'libgroove rules!');
         file.save(function(err) {
-            assert.ok(!err);
+            if (err) throw err;
             file.close(checkUpdate);
         });
     }
@@ -155,3 +155,4 @@ it("create, attach, detach fingerprinter", function(done) {
         });
     });
 });
+

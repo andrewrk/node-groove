@@ -6,72 +6,66 @@ using namespace v8;
 GNPlaylistItem::GNPlaylistItem() { };
 GNPlaylistItem::~GNPlaylistItem() { };
 
-static v8::Persistent<v8::FunctionTemplate> constructor;
-
-template <typename target_t, typename func_t>
-static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(NanNew<String>(name), fn);
-}
+static Nan::Persistent<v8::Function> constructor;
 
 void GNPlaylistItem::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-    tpl->SetClassName(NanNew<String>("GroovePlaylistItem"));
+    Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+    tpl->SetClassName(Nan::New<String>("GroovePlaylistItem").ToLocalChecked());
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // Fields
-    AddGetter(tpl, "file", GetFile);
-    AddGetter(tpl, "id", GetId);
-    AddGetter(tpl, "gain", GetGain);
-    AddGetter(tpl, "peak", GetPeak);
+    Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
 
-    NanAssignPersistent(constructor, tpl);
+    // Fields
+    Nan::SetAccessor(proto, Nan::New<String>("file").ToLocalChecked(), GetFile);
+    Nan::SetAccessor(proto, Nan::New<String>("id").ToLocalChecked(), GetId);
+    Nan::SetAccessor(proto, Nan::New<String>("gain").ToLocalChecked(), GetGain);
+    Nan::SetAccessor(proto, Nan::New<String>("peak").ToLocalChecked(), GetPeak);
+
+    constructor.Reset(tpl->GetFunction());
 }
 
 NAN_METHOD(GNPlaylistItem::New) {
-    NanScope();
+    Nan::HandleScope();
 
     GNPlaylistItem *obj = new GNPlaylistItem();
-    obj->Wrap(args.This());
+    obj->Wrap(info.This());
     
-    NanReturnValue(args.This());
+    info.GetReturnValue().Set(info.This());
 }
 
 Handle<Value> GNPlaylistItem::NewInstance(GroovePlaylistItem *playlist_item) {
-    NanEscapableScope();
+    Nan::EscapableHandleScope scope;
 
-    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
-    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
+    Local<Function> cons = Nan::New(constructor);
+    Local<Object> instance = cons->NewInstance();
 
     GNPlaylistItem *gn_playlist_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(instance);
     gn_playlist_item->playlist_item = playlist_item;
 
-    return NanEscapeScope(instance);
+    return scope.Escape(instance);
 }
 
 NAN_GETTER(GNPlaylistItem::GetFile) {
-    NanScope();
-    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args.This());
-    NanReturnValue(GNFile::NewInstance(gn_pl_item->playlist_item->file));
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
+    Local<Value> tmp = GNFile::NewInstance(gn_pl_item->playlist_item->file);
+    info.GetReturnValue().Set(tmp);
 }
 
 NAN_GETTER(GNPlaylistItem::GetId) {
-    NanScope();
-    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args.This());
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
     char buf[64];
     snprintf(buf, sizeof(buf), "%p", gn_pl_item->playlist_item);
-    NanReturnValue(NanNew<String>(buf));
+    info.GetReturnValue().Set(Nan::New<String>(buf).ToLocalChecked());
 }
 
 NAN_GETTER(GNPlaylistItem::GetGain) {
-    NanScope();
-    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args.This());
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
     double gain = gn_pl_item->playlist_item->gain;
-    NanReturnValue(NanNew<Number>(gain));
+    info.GetReturnValue().Set(Nan::New<Number>(gain));
 }
 
 NAN_GETTER(GNPlaylistItem::GetPeak) {
-    NanScope();
-    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(args.This());
+    GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info.This());
     double peak = gn_pl_item->playlist_item->peak;
-    NanReturnValue(NanNew<Number>(peak));
+    info.GetReturnValue().Set(Nan::New<Number>(peak));
 }

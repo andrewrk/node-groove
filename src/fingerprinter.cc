@@ -9,66 +9,56 @@ GNFingerprinter::~GNFingerprinter() {
     groove_fingerprinter_destroy(printer);
 };
 
-static v8::Persistent<v8::FunctionTemplate> constructor;
-
-template <typename target_t, typename func_t>
-static void AddGetter(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->SetAccessor(NanNew<String>(name), fn);
-}
-
-template <typename target_t, typename func_t>
-static void AddMethod(target_t tpl, const char* name, func_t fn) {
-    tpl->PrototypeTemplate()->Set(NanNew<String>(name),
-            NanNew<FunctionTemplate>(fn)->GetFunction());
-}
+static Nan::Persistent<v8::Function> constructor;
 
 void GNFingerprinter::Init() {
     // Prepare constructor template
-    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-    tpl->SetClassName(NanNew<String>("GrooveFingerprinter"));
+    Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+    tpl->SetClassName(Nan::New<String>("GrooveFingerprinter").ToLocalChecked());
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
-    // Methods
-    AddMethod(tpl, "attach", Attach);
-    AddMethod(tpl, "detach", Detach);
-    AddMethod(tpl, "getInfo", GetInfo);
-    AddMethod(tpl, "position", Position);
 
-    NanAssignPersistent(constructor, tpl);
+    // Methods
+    Nan::SetPrototypeMethod(tpl, "attach", Attach);
+    Nan::SetPrototypeMethod(tpl, "detach", Detach);
+    Nan::SetPrototypeMethod(tpl, "getInfo", GetInfo);
+    Nan::SetPrototypeMethod(tpl, "position", Position);
+
+    constructor.Reset(tpl->GetFunction());
 }
 
 NAN_METHOD(GNFingerprinter::New) {
-    NanScope();
+    Nan::HandleScope();
 
     GNFingerprinter *obj = new GNFingerprinter();
-    obj->Wrap(args.This());
+    obj->Wrap(info.This());
     
-    NanReturnValue(args.This());
+    info.GetReturnValue().Set(info.This());
 }
 
 Handle<Value> GNFingerprinter::NewInstance(GrooveFingerprinter *printer) {
-    NanEscapableScope();
+    Nan::EscapableHandleScope scope;
 
-    Local<FunctionTemplate> constructor_handle = NanNew<v8::FunctionTemplate>(constructor);
-    Local<Object> instance = constructor_handle->GetFunction()->NewInstance();
+    Local<Function> cons = Nan::New(constructor);
+    Local<Object> instance = cons->NewInstance();
 
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(instance);
     gn_printer->printer = printer;
 
-    return NanEscapeScope(instance);
+    return scope.Escape(instance);
 }
 
 NAN_METHOD(GNFingerprinter::Create) {
-    NanScope();
+    Nan::HandleScope();
 
-    if (args.Length() < 1 || !args[0]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[0]");
+        return;
     }
 
     GrooveFingerprinter *printer = groove_fingerprinter_create();
     if (!printer) {
-        NanThrowTypeError("unable to create fingerprinter");
-        NanReturnUndefined();
+        Nan::ThrowTypeError("unable to create fingerprinter");
+        return;
     }
 
     // set properties on the instance with default values from
@@ -77,79 +67,81 @@ NAN_METHOD(GNFingerprinter::Create) {
     GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(instance);
     EventContext *context = new EventContext;
     gn_printer->event_context = context;
-    context->event_cb = new NanCallback(args[0].As<Function>());
+    context->event_cb = new Nan::Callback(info[0].As<Function>());
     context->printer = printer;
 
 
-    instance->Set(NanNew<String>("infoQueueSize"), NanNew<Number>(printer->info_queue_size));
-    instance->Set(NanNew<String>("sinkBufferSize"), NanNew<Number>(printer->sink_buffer_size));
+    Nan::Set(instance, Nan::New<String>("infoQueueSize").ToLocalChecked(),
+            Nan::New<Number>(printer->info_queue_size));
+    Nan::Set(instance, Nan::New<String>("sinkBufferSize").ToLocalChecked(),
+            Nan::New<Number>(printer->sink_buffer_size));
 
-    NanReturnValue(instance);
+    info.GetReturnValue().Set(instance);
 }
 
 NAN_METHOD(GNFingerprinter::Position) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(args.This());
+    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
     GrooveFingerprinter *printer = gn_printer->printer;
 
     GroovePlaylistItem *item;
     double pos;
     groove_fingerprinter_position(printer, &item, &pos);
 
-    Local<Object> obj = NanNew<Object>();
-    obj->Set(NanNew<String>("pos"), NanNew<Number>(pos));
+    Local<Object> obj = Nan::New<Object>();
+    Nan::Set(obj, Nan::New<String>("pos").ToLocalChecked(), Nan::New<Number>(pos));
     if (item) {
-        obj->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(item));
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(item));
     } else {
-        obj->Set(NanNew<String>("item"), NanNull());
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
     }
 
-    NanReturnValue(obj);
+    info.GetReturnValue().Set(obj);
 }
 
 NAN_METHOD(GNFingerprinter::GetInfo) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(args.This());
+    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
     GrooveFingerprinter *printer = gn_printer->printer;
 
-    GrooveFingerprinterInfo info;
-    if (groove_fingerprinter_info_get(printer, &info, 0) == 1) {
-        Local<Object> object = NanNew<Object>();
+    GrooveFingerprinterInfo print_info;
+    if (groove_fingerprinter_info_get(printer, &print_info, 0) == 1) {
+        Local<Object> object = Nan::New<Object>();
 
-        if (info.fingerprint) {
-            Local<Array> int_list = NanNew<Array>();
-            for (int i = 0; i < info.fingerprint_size; i += 1) {
-                int_list->Set(NanNew<Number>(i), NanNew<Number>(info.fingerprint[i]));
+        if (print_info.fingerprint) {
+            Local<Array> int_list = Nan::New<Array>();
+            for (int i = 0; i < print_info.fingerprint_size; i += 1) {
+                Nan::Set(int_list, Nan::New<Number>(i), Nan::New<Number>(print_info.fingerprint[i]));
             }
-            object->Set(NanNew<String>("fingerprint"), int_list);
+            Nan::Set(object, Nan::New<String>("fingerprint").ToLocalChecked(), int_list);
         } else {
-            object->Set(NanNew<String>("fingerprint"), NanNull());
+            Nan::Set(object, Nan::New<String>("fingerprint").ToLocalChecked(), Nan::Null());
         }
-        object->Set(NanNew<String>("duration"), NanNew<Number>(info.duration));
+        Nan::Set(object, Nan::New<String>("duration").ToLocalChecked(), Nan::New<Number>(print_info.duration));
 
-        if (info.item) {
-            object->Set(NanNew<String>("item"), GNPlaylistItem::NewInstance(info.item));
+        if (print_info.item) {
+            Nan::Set(object, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(print_info.item));
         } else {
-            object->Set(NanNew<String>("item"), NanNull());
+            Nan::Set(object, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
         }
 
-        groove_fingerprinter_free_info(&info);
+        groove_fingerprinter_free_info(&print_info);
 
-        NanReturnValue(object);
+        info.GetReturnValue().Set(object);
     } else {
-        NanReturnNull();
+        info.GetReturnValue().Set(Nan::Null());
     }
 }
 
 struct AttachReq {
     uv_work_t req;
-    NanCallback *callback;
+    Nan::Callback *callback;
     GrooveFingerprinter *printer;
     GroovePlaylist *playlist;
     int errcode;
-    Persistent<Object> instance;
+    Nan::Persistent<Object> instance;
     GNFingerprinter::EventContext *event_context;
 };
 
@@ -159,15 +151,15 @@ static void EventAsyncCb(uv_async_t *handle
 #endif
         )
 {
-    NanScope();
+    Nan::HandleScope();
 
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(handle->data);
 
     // call callback signaling that there is info ready
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
-    argv[0] = NanNull();
+    Local<Value> argv[argc];
+    argv[0] = Nan::Null();
 
     TryCatch try_catch;
     context->event_cb->Call(argc, argv);
@@ -208,21 +200,21 @@ static void AttachAsync(uv_work_t *req) {
 }
 
 static void AttachAfter(uv_work_t *req) {
-    NanScope();
+    Nan::HandleScope();
     AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
+    Local<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(NanNew<String>("fingerprinter attach failed"));
+        argv[0] = Exception::Error(Nan::New<String>("fingerprinter attach failed").ToLocalChecked());
     } else {
-        argv[0] = NanNull();
+        argv[0] = Nan::Null();
     }
 
     TryCatch try_catch;
     r->callback->Call(argc, argv);
 
-    NanDisposePersistent(r->instance);
+    r->instance.Reset();
     delete r->callback;
     delete r;
 
@@ -232,29 +224,29 @@ static void AttachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFingerprinter::Attach) {
-    NanScope();
+    Nan::HandleScope();
 
-    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(args.This());
+    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
 
-    if (args.Length() < 1 || !args[0]->IsObject()) {
-        NanThrowTypeError("Expected object arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsObject()) {
+        Nan::ThrowTypeError("Expected object arg[0]");
+        return;
     }
-    if (args.Length() < 2 || !args[1]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[1]");
-        NanReturnUndefined();
+    if (info.Length() < 2 || !info[1]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[1]");
+        return;
     }
 
-    Local<Object> instance = args.This();
+    Local<Object> instance = info.This();
 
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(args[0]->ToObject());
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
 
     AttachReq *request = new AttachReq;
 
     request->req.data = request;
-    request->callback = new NanCallback(args[1].As<Function>());
+    request->callback = new Nan::Callback(info[1].As<Function>());
 
-    NanAssignPersistent(request->instance, args.This());
+    request->instance.Reset(info.This());
 
     request->playlist = gn_playlist->playlist;
     GrooveFingerprinter *printer = gn_printer->printer;
@@ -262,19 +254,19 @@ NAN_METHOD(GNFingerprinter::Attach) {
     request->event_context = gn_printer->event_context;
 
     // copy the properties from our instance to the player
-    printer->info_queue_size = (int)instance->Get(NanNew<String>("infoQueueSize"))->NumberValue();
-    printer->sink_buffer_size = (int)instance->Get(NanNew<String>("sinkBufferSize"))->NumberValue();
+    printer->info_queue_size = (int)instance->Get(Nan::New<String>("infoQueueSize").ToLocalChecked())->NumberValue();
+    printer->sink_buffer_size = (int)instance->Get(Nan::New<String>("sinkBufferSize").ToLocalChecked())->NumberValue();
 
     uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
             (uv_after_work_cb)AttachAfter);
 
-    NanReturnUndefined();
+    return;
 }
 
 struct DetachReq {
     uv_work_t req;
     GrooveFingerprinter *printer;
-    NanCallback *callback;
+    Nan::Callback *callback;
     int errcode;
     GNFingerprinter::EventContext *event_context;
 };
@@ -296,16 +288,16 @@ static void DetachAsync(uv_work_t *req) {
 }
 
 static void DetachAfter(uv_work_t *req) {
-    NanScope();
+    Nan::HandleScope();
 
     DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
 
     const unsigned argc = 1;
-    Handle<Value> argv[argc];
+    Local<Value> argv[argc];
     if (r->errcode < 0) {
-        argv[0] = Exception::Error(NanNew<String>("fingerprinter detach failed"));
+        argv[0] = Exception::Error(Nan::New<String>("fingerprinter detach failed").ToLocalChecked());
     } else {
-        argv[0] = NanNull();
+        argv[0] = Nan::Null();
     }
     TryCatch try_catch;
     r->callback->Call(argc, argv);
@@ -319,71 +311,71 @@ static void DetachAfter(uv_work_t *req) {
 }
 
 NAN_METHOD(GNFingerprinter::Detach) {
-    NanScope();
-    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(args.This());
+    Nan::HandleScope();
+    GNFingerprinter *gn_printer = node::ObjectWrap::Unwrap<GNFingerprinter>(info.This());
 
-    if (args.Length() < 1 || !args[0]->IsFunction()) {
-        NanThrowTypeError("Expected function arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsFunction()) {
+        Nan::ThrowTypeError("Expected function arg[0]");
+        return;
     }
 
     DetachReq *request = new DetachReq;
 
     request->req.data = request;
-    request->callback = new NanCallback(args[0].As<Function>());
+    request->callback = new Nan::Callback(info[0].As<Function>());
     request->printer = gn_printer->printer;
     request->event_context = gn_printer->event_context;
 
     uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
             (uv_after_work_cb)DetachAfter);
 
-    NanReturnUndefined();
+    return;
 }
 
 NAN_METHOD(GNFingerprinter::Encode) {
-    NanScope();
+    Nan::HandleScope();
 
-    if (args.Length() < 1 || !args[0]->IsArray()) {
-        NanThrowTypeError("Expected Array arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsArray()) {
+        Nan::ThrowTypeError("Expected Array arg[0]");
+        return;
     }
 
-    Local<Array> int_list = Local<Array>::Cast(args[0]);
+    Local<Array> int_list = Local<Array>::Cast(info[0]);
     int len = int_list->Length();
     int32_t *raw_fingerprint = new int32_t[len];
     for (int i = 0; i < len; i += 1) {
-        double val = int_list->Get(NanNew<Number>(i))->NumberValue();
+        double val = int_list->Get(Nan::New<Number>(i))->NumberValue();
         raw_fingerprint[i] = (int32_t)val;
     }
     char *fingerprint;
     groove_fingerprinter_encode(raw_fingerprint, len, &fingerprint);
     delete[] raw_fingerprint;
-    Local<String> js_fingerprint = NanNew<String>(fingerprint);
+    Local<String> js_fingerprint = Nan::New<String>(fingerprint).ToLocalChecked();
     groove_fingerprinter_dealloc(fingerprint);
 
-    NanReturnValue(js_fingerprint);
+    info.GetReturnValue().Set(js_fingerprint);
 }
 
 NAN_METHOD(GNFingerprinter::Decode) {
-    NanScope();
+    Nan::HandleScope();
 
-    if (args.Length() < 1 || !args[0]->IsString()) {
-        NanThrowTypeError("Expected String arg[0]");
-        NanReturnUndefined();
+    if (info.Length() < 1 || !info[0]->IsString()) {
+        Nan::ThrowTypeError("Expected String arg[0]");
+        return;
     }
 
-    String::Utf8Value utf8fingerprint(args[0]->ToString());
+    String::Utf8Value utf8fingerprint(info[0]->ToString());
     char *fingerprint = *utf8fingerprint;
 
     int32_t *raw_fingerprint;
     int raw_fingerprint_len;
     groove_fingerprinter_decode(fingerprint, &raw_fingerprint, &raw_fingerprint_len);
-    Local<Array> int_list = NanNew<Array>();
+    Local<Array> int_list = Nan::New<Array>();
 
     for (int i = 0; i < raw_fingerprint_len; i += 1) {
-        int_list->Set(NanNew<Number>(i), NanNew<Number>(raw_fingerprint[i]));
+        Nan::Set(int_list, Nan::New<Number>(i), Nan::New<Number>(raw_fingerprint[i]));
     }
     groove_fingerprinter_dealloc(raw_fingerprint);
 
-    NanReturnValue(int_list);
+    info.GetReturnValue().Set(int_list);
 }
