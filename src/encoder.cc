@@ -407,6 +407,7 @@ NAN_METHOD(GNEncoder::GetBuffer) {
             Nan::Set(object, Nan::New<String>("pts").ToLocalChecked(), Nan::New<Number>(buffer->pts));
 
             info.GetReturnValue().Set(object);
+            break;
         }
         case GROOVE_BUFFER_END: {
             Local<Object> object = Nan::New<Object>();
@@ -417,6 +418,7 @@ NAN_METHOD(GNEncoder::GetBuffer) {
             Nan::Set(object, Nan::New<String>("pts").ToLocalChecked(), Nan::Null());
 
             info.GetReturnValue().Set(object);
+            break;
         }
         default:
             info.GetReturnValue().Set(Nan::Null());
