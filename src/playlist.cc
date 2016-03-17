@@ -110,7 +110,6 @@ NAN_METHOD(GNPlaylist::Pause) {
     Nan::HandleScope scope;
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     groove_playlist_pause(gn_playlist->playlist);
-    return;
 }
 
 NAN_METHOD(GNPlaylist::Seek) {
@@ -122,8 +121,6 @@ NAN_METHOD(GNPlaylist::Seek) {
 
     double pos = info[1]->NumberValue();
     groove_playlist_seek(gn_playlist->playlist, gn_playlist_item->playlist_item, pos);
-
-    return;
 }
 
 NAN_METHOD(GNPlaylist::Insert) {
@@ -156,7 +153,6 @@ NAN_METHOD(GNPlaylist::Remove) {
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info.This());
     GNPlaylistItem *gn_pl_item = node::ObjectWrap::Unwrap<GNPlaylistItem>(info[0]->ToObject());
     groove_playlist_remove(gn_playlist->playlist, gn_pl_item->playlist_item);
-    return;
 }
 
 NAN_METHOD(GNPlaylist::DecodePosition) {

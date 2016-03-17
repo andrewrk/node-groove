@@ -8,6 +8,8 @@ using namespace v8;
 GNFingerprinter::GNFingerprinter() {};
 GNFingerprinter::~GNFingerprinter() {
     groove_fingerprinter_destroy(printer);
+    delete event_context->event_cb;
+    delete event_context;
 };
 
 static Nan::Persistent<v8::Function> constructor;
@@ -134,17 +136,7 @@ NAN_METHOD(GNFingerprinter::GetInfo) {
     }
 }
 
-struct AttachReq {
-    uv_work_t req;
-    Nan::Callback *callback;
-    GrooveFingerprinter *printer;
-    GroovePlaylist *playlist;
-    int errcode;
-    Nan::Persistent<Object> instance;
-    GNFingerprinter::EventContext *event_context;
-};
-
-static void EventAsyncCb(uv_async_t *handle) {
+static void PrinterEventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(handle->data);
@@ -167,7 +159,7 @@ static void EventAsyncCb(uv_async_t *handle) {
     uv_mutex_unlock(&context->mutex);
 }
 
-static void EventThreadEntry(void *arg) {
+static void PrinterEventThreadEntry(void *arg) {
     GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(arg);
     while (groove_fingerprinter_info_peek(context->printer, 1) > 0) {
         uv_mutex_lock(&context->mutex);
@@ -177,45 +169,38 @@ static void EventThreadEntry(void *arg) {
     }
 }
 
-static void AttachAsync(uv_work_t *req) {
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
+class PrinterAttachWorker : public Nan::AsyncWorker {
+public:
+    PrinterAttachWorker(Nan::Callback *callback, GrooveFingerprinter *printer, GroovePlaylist *playlist,
+            GNFingerprinter::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->printer = printer;
+        this->playlist = playlist;
+        this->event_context = event_context;
+    }
+    ~PrinterAttachWorker() {}
 
-    r->errcode = groove_fingerprinter_attach(r->printer, r->playlist);
+    void Execute() {
+        int err;
+        if ((err = groove_fingerprinter_attach(printer, playlist))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
 
-    GNFingerprinter::EventContext *context = r->event_context;
+        uv_cond_init(&event_context->cond);
+        uv_mutex_init(&event_context->mutex);
 
-    uv_cond_init(&context->cond);
-    uv_mutex_init(&context->mutex);
+        event_context->event_async.data = event_context;
+        uv_async_init(uv_default_loop(), &event_context->event_async, PrinterEventAsyncCb);
 
-    context->event_async.data = context;
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
-
-    uv_thread_create(&context->event_thread, EventThreadEntry, context);
-}
-
-static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("fingerprinter attach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
+        uv_thread_create(&event_context->event_thread, PrinterEventThreadEntry, event_context);
     }
 
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    r->instance.Reset();
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
+    GrooveFingerprinter *printer;
+    GroovePlaylist *playlist;
+    GNFingerprinter::EventContext *event_context;
+};
 
 NAN_METHOD(GNFingerprinter::Attach) {
     Nan::HandleScope scope;
@@ -226,82 +211,50 @@ NAN_METHOD(GNFingerprinter::Attach) {
         Nan::ThrowTypeError("Expected object arg[0]");
         return;
     }
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
+
     if (info.Length() < 2 || !info[1]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[1]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
 
     Local<Object> instance = info.This();
-
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
-
-    AttachReq *request = new AttachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[1].As<Function>());
-
-    request->instance.Reset(info.This());
-
-    request->playlist = gn_playlist->playlist;
     GrooveFingerprinter *printer = gn_printer->printer;
-    request->printer = printer;
-    request->event_context = gn_printer->event_context;
 
     // copy the properties from our instance to the player
     printer->info_queue_size = (int)instance->Get(Nan::New<String>("infoQueueSize").ToLocalChecked())->NumberValue();
 
-    uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
-            (uv_after_work_cb)AttachAfter);
-
-    return;
+    AsyncQueueWorker(new PrinterAttachWorker(callback, printer, gn_playlist->playlist, gn_printer->event_context));
 }
 
-struct DetachReq {
-    uv_work_t req;
+class PrinterDetachWorker : public Nan::AsyncWorker {
+public:
+    PrinterDetachWorker(Nan::Callback *callback, GrooveFingerprinter *printer,
+            GNFingerprinter::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->printer = printer;
+        this->event_context = event_context;
+    }
+    ~PrinterDetachWorker() {}
+
+    void Execute() {
+        int err;
+        if ((err = groove_fingerprinter_detach(printer))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
+        uv_cond_signal(&event_context->cond);
+        uv_thread_join(&event_context->event_thread);
+        uv_cond_destroy(&event_context->cond);
+        uv_mutex_destroy(&event_context->mutex);
+        uv_close(reinterpret_cast<uv_handle_t*>(&event_context->event_async), NULL);
+    }
+
     GrooveFingerprinter *printer;
-    Nan::Callback *callback;
-    int errcode;
     GNFingerprinter::EventContext *event_context;
 };
-
-static void DetachAsyncFree(uv_handle_t *handle) {
-    GNFingerprinter::EventContext *context = reinterpret_cast<GNFingerprinter::EventContext *>(handle->data);
-    delete context->event_cb;
-    delete context;
-}
-
-static void DetachAsync(uv_work_t *req) {
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-    r->errcode = groove_fingerprinter_detach(r->printer);
-    uv_cond_signal(&r->event_context->cond);
-    uv_thread_join(&r->event_context->event_thread);
-    uv_cond_destroy(&r->event_context->cond);
-    uv_mutex_destroy(&r->event_context->mutex);
-    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
-}
-
-static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("fingerprinter detach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
-    }
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
 
 NAN_METHOD(GNFingerprinter::Detach) {
     Nan::HandleScope scope;
@@ -311,18 +264,9 @@ NAN_METHOD(GNFingerprinter::Detach) {
         Nan::ThrowTypeError("Expected function arg[0]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
 
-    DetachReq *request = new DetachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[0].As<Function>());
-    request->printer = gn_printer->printer;
-    request->event_context = gn_printer->event_context;
-
-    uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
-            (uv_after_work_cb)DetachAfter);
-
-    return;
+    AsyncQueueWorker(new PrinterDetachWorker(callback, gn_printer->printer, gn_printer->event_context));
 }
 
 NAN_METHOD(GNFingerprinter::Encode) {

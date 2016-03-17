@@ -30,6 +30,8 @@ class GNEncoder : public node::ObjectWrap {
 
         static NAN_METHOD(New);
 
+        static NAN_GETTER(GetActualAudioFormat);
+
         static NAN_METHOD(Attach);
         static NAN_METHOD(Detach);
         static NAN_METHOD(GetBuffer);

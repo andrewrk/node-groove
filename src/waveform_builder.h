@@ -5,8 +5,6 @@
 #include <nan.h>
 #include <groove/waveform.h>
 
-using Nan::Callback;
-
 class GNWaveformBuilder : public node::ObjectWrap {
     public:
         static void Init();
@@ -20,7 +18,7 @@ class GNWaveformBuilder : public node::ObjectWrap {
             uv_cond_t cond;
             uv_mutex_t mutex;
             GrooveWaveform *waveform;
-            Callback *event_cb;
+            Nan::Callback *event_cb;
         };
 
         EventContext *event_context;
@@ -31,6 +29,9 @@ class GNWaveformBuilder : public node::ObjectWrap {
         ~GNWaveformBuilder();
 
         static NAN_METHOD(New);
+
+        static NAN_GETTER(GetId);
+        static NAN_GETTER(GetPlaylist);
 
         static NAN_METHOD(Attach);
         static NAN_METHOD(Detach);

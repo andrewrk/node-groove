@@ -8,6 +8,8 @@ using namespace v8;
 GNLoudnessDetector::GNLoudnessDetector() {};
 GNLoudnessDetector::~GNLoudnessDetector() {
     groove_loudness_detector_destroy(detector);
+    delete event_context->event_cb;
+    delete event_context;
 };
 
 static Nan::Persistent<v8::Function> constructor;
@@ -16,7 +18,7 @@ void GNLoudnessDetector::Init() {
     // Prepare constructor template
     Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
     tpl->SetClassName(Nan::New<String>("GrooveLoudnessDetector").ToLocalChecked());
-    tpl->InstanceTemplate()->SetInternalFieldCount(2);
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
     // Methods
     Nan::SetPrototypeMethod(tpl, "attach", Attach);
@@ -125,16 +127,6 @@ NAN_METHOD(GNLoudnessDetector::GetInfo) {
     }
 }
 
-struct AttachReq {
-    uv_work_t req;
-    Nan::Callback *callback;
-    GrooveLoudnessDetector *detector;
-    GroovePlaylist *playlist;
-    int errcode;
-    Nan::Persistent<Object> instance;
-    GNLoudnessDetector::EventContext *event_context;
-};
-
 static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
@@ -168,46 +160,38 @@ static void EventThreadEntry(void *arg) {
     }
 }
 
-static void AttachAsync(uv_work_t *req) {
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
+class DetectorAttachWorker : public Nan::AsyncWorker {
+public:
+    DetectorAttachWorker(Nan::Callback *callback, GrooveLoudnessDetector *detector, GroovePlaylist *playlist,
+            GNLoudnessDetector::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->detector = detector;
+        this->playlist = playlist;
+        this->event_context = event_context;
+    }
+    ~DetectorAttachWorker() {}
 
-    r->errcode = groove_loudness_detector_attach(r->detector, r->playlist);
+    void Execute() {
+        int err;
+        if ((err = groove_loudness_detector_attach(detector, playlist))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
 
-    GNLoudnessDetector::EventContext *context = r->event_context;
+        uv_cond_init(&event_context->cond);
+        uv_mutex_init(&event_context->mutex);
 
-    uv_cond_init(&context->cond);
-    uv_mutex_init(&context->mutex);
+        event_context->event_async.data = event_context;
+        uv_async_init(uv_default_loop(), &event_context->event_async, EventAsyncCb);
 
-    context->event_async.data = context;
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
-
-    uv_thread_create(&context->event_thread, EventThreadEntry, context);
-}
-
-static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("loudness detector attach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
+        uv_thread_create(&event_context->event_thread, EventThreadEntry, event_context);
     }
 
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    r->instance.Reset();
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
+    GrooveLoudnessDetector *detector;
+    GroovePlaylist *playlist;
+    GNLoudnessDetector::EventContext *event_context;
+};
 
 NAN_METHOD(GNLoudnessDetector::Attach) {
     Nan::HandleScope scope;
@@ -218,102 +202,63 @@ NAN_METHOD(GNLoudnessDetector::Attach) {
         Nan::ThrowTypeError("Expected object arg[0]");
         return;
     }
+    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
+
     if (info.Length() < 2 || !info[1]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[1]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
 
     Local<Object> instance = info.This();
 
-    GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
-
-    AttachReq *request = new AttachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[1].As<Function>());
-
-    request->instance.Reset(info.This());
-
-    request->playlist = gn_playlist->playlist;
     GrooveLoudnessDetector *detector = gn_detector->detector;
-    request->detector = detector;
-    request->event_context = gn_detector->event_context;
 
     // copy the properties from our instance to the player
     detector->info_queue_size = (int)instance->Get(Nan::New<String>("infoQueueSize").ToLocalChecked())->NumberValue();
     detector->disable_album = (int)instance->Get(Nan::New<String>("disableAlbum").ToLocalChecked())->BooleanValue();
 
-    uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
-            (uv_after_work_cb)AttachAfter);
-
-    return;
+    AsyncQueueWorker(new DetectorAttachWorker(callback, detector, gn_playlist->playlist, gn_detector->event_context));
 }
 
-struct DetachReq {
-    uv_work_t req;
+class DetectorDetachWorker : public Nan::AsyncWorker {
+public:
+    DetectorDetachWorker(Nan::Callback *callback, GrooveLoudnessDetector *detector,
+            GNLoudnessDetector::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->detector = detector;
+        this->event_context = event_context;
+    }
+    ~DetectorDetachWorker() {}
+
+    void Execute() {
+        int err;
+        if ((err = groove_loudness_detector_detach(detector))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
+        uv_cond_signal(&event_context->cond);
+        uv_thread_join(&event_context->event_thread);
+        uv_cond_destroy(&event_context->cond);
+        uv_mutex_destroy(&event_context->mutex);
+        uv_close(reinterpret_cast<uv_handle_t*>(&event_context->event_async), NULL);
+    }
+
     GrooveLoudnessDetector *detector;
-    Nan::Callback *callback;
-    int errcode;
     GNLoudnessDetector::EventContext *event_context;
 };
 
-static void DetachAsyncFree(uv_handle_t *handle) {
-    GNLoudnessDetector::EventContext *context = reinterpret_cast<GNLoudnessDetector::EventContext *>(handle->data);
-    delete context->event_cb;
-    delete context;
-}
-
-static void DetachAsync(uv_work_t *req) {
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-    r->errcode = groove_loudness_detector_detach(r->detector);
-    uv_cond_signal(&r->event_context->cond);
-    uv_thread_join(&r->event_context->event_thread);
-    uv_cond_destroy(&r->event_context->cond);
-    uv_mutex_destroy(&r->event_context->mutex);
-    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
-}
-
-static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("loudness detector detach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
-    }
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
-
 NAN_METHOD(GNLoudnessDetector::Detach) {
     Nan::HandleScope scope;
-    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+    GNLoudnessDetector *gn_detector = node::ObjectWrap::Unwrap<GNLoudnessDetector>(info.This());
+    GrooveLoudnessDetector *detector = gn_detector->detector;
 
-    DetachReq *request = new DetachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[0].As<Function>());
-    request->detector = gn_detector->detector;
-    request->event_context = gn_detector->event_context;
-
-    uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
-            (uv_after_work_cb)DetachAfter);
-
-    return;
+    AsyncQueueWorker(new DetectorDetachWorker(callback, detector, gn_detector->event_context));
 }

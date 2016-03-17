@@ -182,23 +182,14 @@ public:
     ~CloseWorker() {}
 
     void Execute() {
-        groove_file_destroy(file);
-    }
-
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
-
         if (file) {
-            Local<Value> argv[] = {Nan::Null()};
-            callback->Call(1, argv);
+            groove_file_destroy(file);
         } else {
-            Local<Value> argv[] = {Exception::Error(Nan::New<String>("file already closed").ToLocalChecked())};
-            callback->Call(1, argv);
+            SetErrorMessage("file already closed");
         }
     }
 
     GrooveFile *file;
-
 };
 
 NAN_METHOD(GNFile::Close) {
@@ -229,27 +220,24 @@ public:
     void Execute() {
         file = groove_file_create(get_groove());
         if (!file) {
-            err = GrooveErrorNoMem;
+            SetErrorMessage(groove_strerror(GrooveErrorNoMem));
             return;
         }
-        err = groove_file_open(file, **filename, **filename);
+        int err;
+        if ((err = groove_file_open(file, **filename, **filename))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
     }
 
     void HandleOKCallback() {
         Nan::HandleScope scope;
-
-        if (err) {
-            Local<Value> argv[] = {Exception::Error(Nan::New<String>(groove_strerror(err)).ToLocalChecked())};
-            callback->Call(1, argv);
-        } else {
-            Local<Value> argv[] = {Nan::Null(), GNFile::NewInstance(file)};
-            callback->Call(2, argv);
-        }
+        Local<Value> argv[] = {Nan::Null(), GNFile::NewInstance(file)};
+        callback->Call(2, argv);
     }
 
     GrooveFile *file;
     String::Utf8Value *filename;
-    int err;
 };
 
 NAN_METHOD(GNFile::Open) {
@@ -276,23 +264,14 @@ public:
     ~SaveWorker() { }
 
     void Execute() {
-        err = groove_file_save(file);
-    }
-
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
-
-        if (err) {
-            Local<Value> argv[] = {Exception::Error(Nan::New<String>(groove_strerror(err)).ToLocalChecked())};
-            callback->Call(1, argv);
-        } else {
-            Local<Value> argv[] = {Nan::Null()};
-            callback->Call(1, argv);
+        int err;
+        if ((err = groove_file_save(file))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
         }
     }
 
     GrooveFile *file;
-    int err;
 };
 
 NAN_METHOD(GNFile::Save) {

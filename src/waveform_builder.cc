@@ -1,6 +1,6 @@
 #include "waveform_builder.h"
-#include "playlist_item.h"
 #include "playlist.h"
+#include "playlist_item.h"
 #include "groove.h"
 
 using namespace v8;
@@ -8,6 +8,8 @@ using namespace v8;
 GNWaveformBuilder::GNWaveformBuilder() {};
 GNWaveformBuilder::~GNWaveformBuilder() {
     groove_waveform_destroy(waveform);
+    delete event_context->event_cb;
+    delete event_context;
 };
 
 static Nan::Persistent<v8::Function> constructor;
@@ -17,6 +19,11 @@ void GNWaveformBuilder::Init() {
     Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
     tpl->SetClassName(Nan::New<String>("GrooveWaveformBuilder").ToLocalChecked());
     tpl->InstanceTemplate()->SetInternalFieldCount(2);
+    Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
+
+    // Fields
+    Nan::SetAccessor(proto, Nan::New<String>("id").ToLocalChecked(), GetId);
+    Nan::SetAccessor(proto, Nan::New<String>("playlist").ToLocalChecked(), GetPlaylist);
 
     // Methods
     Nan::SetPrototypeMethod(tpl, "attach", Attach);
@@ -46,6 +53,47 @@ Local<Value> GNWaveformBuilder::NewInstance(GrooveWaveform *waveform) {
     gn_waveform->waveform = waveform;
 
     return scope.Escape(instance);
+}
+
+NAN_GETTER(GNWaveformBuilder::GetId) {
+    Nan::HandleScope scope;
+    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%p", gn_waveform->waveform);
+    info.GetReturnValue().Set(Nan::New<String>(buf).ToLocalChecked());
+}
+
+NAN_GETTER(GNWaveformBuilder::GetPlaylist) {
+    Nan::HandleScope scope;
+    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
+    GroovePlaylist *playlist = gn_waveform->waveform->playlist;
+    if (playlist) {
+        Local<Value> tmp = GNPlaylist::NewInstance(playlist);
+        info.GetReturnValue().Set(tmp);
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
+}
+
+NAN_METHOD(GNWaveformBuilder::Position) {
+    Nan::HandleScope scope;
+
+    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
+    GrooveWaveform *waveform = gn_waveform->waveform;
+
+    GroovePlaylistItem *item;
+    double pos;
+    groove_waveform_position(waveform, &item, &pos);
+
+    Local<Object> obj = Nan::New<Object>();
+    Nan::Set(obj, Nan::New<String>("pos").ToLocalChecked(), Nan::New<Number>(pos));
+    if (item) {
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(item));
+    } else {
+        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
+    }
+
+    info.GetReturnValue().Set(obj);
 }
 
 NAN_METHOD(GNWaveformBuilder::Create) {
@@ -79,27 +127,6 @@ NAN_METHOD(GNWaveformBuilder::Create) {
             Nan::New<Number>(waveform->width_in_frames));
 
     info.GetReturnValue().Set(instance);
-}
-
-NAN_METHOD(GNWaveformBuilder::Position) {
-    Nan::HandleScope scope;
-
-    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
-    GrooveWaveform *waveform = gn_waveform->waveform;
-
-    GroovePlaylistItem *item;
-    double pos;
-    groove_waveform_position(waveform, &item, &pos);
-
-    Local<Object> obj = Nan::New<Object>();
-    Nan::Set(obj, Nan::New<String>("pos").ToLocalChecked(), Nan::New<Number>(pos));
-    if (item) {
-        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), GNPlaylistItem::NewInstance(item));
-    } else {
-        Nan::Set(obj, Nan::New<String>("item").ToLocalChecked(), Nan::Null());
-    }
-
-    info.GetReturnValue().Set(obj);
 }
 
 static void buffer_free(char *data, void *hint) {
@@ -147,16 +174,6 @@ NAN_METHOD(GNWaveformBuilder::GetInfo) {
     }
 }
 
-struct AttachReq {
-    uv_work_t req;
-    Nan::Callback *callback;
-    GrooveWaveform *waveform;
-    GroovePlaylist *playlist;
-    int errcode;
-    Nan::Persistent<Object> instance;
-    GNWaveformBuilder::EventContext *event_context;
-};
-
 static void EventAsyncCb(uv_async_t *handle) {
     Nan::HandleScope scope;
 
@@ -190,45 +207,40 @@ static void EventThreadEntry(void *arg) {
     }
 }
 
-static void AttachAsync(uv_work_t *req) {
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
+class WaveformAttachWorker : public Nan::AsyncWorker {
+public:
+    WaveformAttachWorker(Nan::Callback *callback, GrooveWaveform *waveform, GroovePlaylist *playlist,
+            GNWaveformBuilder::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->waveform = waveform;
+        this->playlist = playlist;
+        this->event_context = event_context;
+    }
+    ~WaveformAttachWorker() {}
 
-    r->errcode = groove_waveform_attach(r->waveform, r->playlist);
+    void Execute() {
+        int err;
+        if ((err = groove_waveform_attach(waveform, playlist))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
 
-    GNWaveformBuilder::EventContext *context = r->event_context;
+        GNWaveformBuilder::EventContext *context = event_context;
 
-    uv_cond_init(&context->cond);
-    uv_mutex_init(&context->mutex);
+        uv_cond_init(&context->cond);
+        uv_mutex_init(&context->mutex);
 
-    context->event_async.data = context;
-    uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
+        context->event_async.data = context;
+        uv_async_init(uv_default_loop(), &context->event_async, EventAsyncCb);
 
-    uv_thread_create(&context->event_thread, EventThreadEntry, context);
-}
-
-static void AttachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-    AttachReq *r = reinterpret_cast<AttachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("waveform builder attach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
+        uv_thread_create(&context->event_thread, EventThreadEntry, context);
     }
 
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    r->instance.Reset();
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
+    GrooveWaveform *waveform;
+    GroovePlaylist *playlist;
+    GNWaveformBuilder::EventContext *event_context;
+};
 
 NAN_METHOD(GNWaveformBuilder::Attach) {
     Nan::HandleScope scope;
@@ -243,98 +255,62 @@ NAN_METHOD(GNWaveformBuilder::Attach) {
         Nan::ThrowTypeError("Expected function arg[1]");
         return;
     }
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
 
     Local<Object> instance = info.This();
 
     GNPlaylist *gn_playlist = node::ObjectWrap::Unwrap<GNPlaylist>(info[0]->ToObject());
 
-    AttachReq *request = new AttachReq;
-
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[1].As<Function>());
-
-    request->instance.Reset(info.This());
-
-    request->playlist = gn_playlist->playlist;
     GrooveWaveform *waveform = gn_waveform->waveform;
-    request->waveform = waveform;
-    request->event_context = gn_waveform->event_context;
 
     // copy the properties from our instance to the player
     waveform->info_queue_size_bytes = (int)instance->Get(Nan::New<String>("infoQueueSizeBytes").ToLocalChecked())->NumberValue();
     waveform->width_in_frames = (int)instance->Get(Nan::New<String>("widthInFrames").ToLocalChecked())->NumberValue();
 
-    uv_queue_work(uv_default_loop(), &request->req, AttachAsync,
-            (uv_after_work_cb)AttachAfter);
 
-    return;
+    AsyncQueueWorker(new WaveformAttachWorker(callback, waveform, gn_playlist->playlist, gn_waveform->event_context));
 }
 
-struct DetachReq {
-    uv_work_t req;
+class WaveformDetachWorker : public Nan::AsyncWorker {
+public:
+    WaveformDetachWorker(Nan::Callback *callback, GrooveWaveform *waveform,
+            GNWaveformBuilder::EventContext *event_context) :
+        Nan::AsyncWorker(callback)
+    {
+        this->waveform = waveform;
+        this->event_context = event_context;
+    }
+    ~WaveformDetachWorker() {}
+
+    void Execute() {
+        int err;
+        if ((err = groove_waveform_detach(waveform))) {
+            SetErrorMessage(groove_strerror(err));
+            return;
+        }
+        uv_cond_signal(&event_context->cond);
+        uv_thread_join(&event_context->event_thread);
+        uv_cond_destroy(&event_context->cond);
+        uv_mutex_destroy(&event_context->mutex);
+        uv_close(reinterpret_cast<uv_handle_t*>(&event_context->event_async), NULL);
+    }
+
     GrooveWaveform *waveform;
-    Nan::Callback *callback;
-    int errcode;
+    GroovePlaylist *playlist;
     GNWaveformBuilder::EventContext *event_context;
 };
 
-static void DetachAsyncFree(uv_handle_t *handle) {
-    GNWaveformBuilder::EventContext *context = reinterpret_cast<GNWaveformBuilder::EventContext *>(handle->data);
-    delete context->event_cb;
-    delete context;
-}
-
-static void DetachAsync(uv_work_t *req) {
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-    r->errcode = groove_waveform_detach(r->waveform);
-    uv_cond_signal(&r->event_context->cond);
-    uv_thread_join(&r->event_context->event_thread);
-    uv_cond_destroy(&r->event_context->cond);
-    uv_mutex_destroy(&r->event_context->mutex);
-    uv_close(reinterpret_cast<uv_handle_t*>(&r->event_context->event_async), DetachAsyncFree);
-}
-
-static void DetachAfter(uv_work_t *req) {
-    Nan::HandleScope scope;
-
-    DetachReq *r = reinterpret_cast<DetachReq *>(req->data);
-
-    const unsigned argc = 1;
-    Local<Value> argv[argc];
-    if (r->errcode < 0) {
-        argv[0] = Exception::Error(Nan::New<String>("waveform builder detach failed").ToLocalChecked());
-    } else {
-        argv[0] = Nan::Null();
-    }
-    TryCatch try_catch;
-    r->callback->Call(argc, argv);
-
-    delete r->callback;
-    delete r;
-
-    if (try_catch.HasCaught()) {
-        node::FatalException(try_catch);
-    }
-}
-
 NAN_METHOD(GNWaveformBuilder::Detach) {
     Nan::HandleScope scope;
-    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
 
     if (info.Length() < 1 || !info[0]->IsFunction()) {
         Nan::ThrowTypeError("Expected function arg[0]");
         return;
     }
 
-    DetachReq *request = new DetachReq;
+    Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+    GNWaveformBuilder *gn_waveform = node::ObjectWrap::Unwrap<GNWaveformBuilder>(info.This());
+    GrooveWaveform *waveform = gn_waveform->waveform;
 
-    request->req.data = request;
-    request->callback = new Nan::Callback(info[0].As<Function>());
-    request->waveform = gn_waveform->waveform;
-    request->event_context = gn_waveform->event_context;
-
-    uv_queue_work(uv_default_loop(), &request->req, DetachAsync,
-            (uv_after_work_cb)DetachAfter);
-
-    return;
+    AsyncQueueWorker(new WaveformDetachWorker(callback, waveform, gn_waveform->event_context));
 }
