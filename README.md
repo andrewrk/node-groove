@@ -24,8 +24,8 @@ To build this module from source, edit `binding.gyp` and make these modification
 
 * Add an entry to the beginning of `"libraries"` that is `"-L{YOUR-HOME-DIRECTORY-HERE}/local/lib",`,
   for example `"-L/home/josh/local/lib",`.
-* Add a new option: `"cflags": ["-L{YOUR-HOME-DIRECTORY-HERE}/local/include"],`,
-  for example `"cflags": ["-L/home/josh/local/include"],`.
+* Add a new option: `"cflags": ["-I{YOUR-HOME-DIRECTORY-HERE}/local/include"],`,
+  for example `"cflags": ["-I/home/josh/local/include"],`.
 
 Then running `npm install` should work.
 
