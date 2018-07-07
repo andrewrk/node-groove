@@ -13,6 +13,22 @@ Live discussion in `#libgroove` on [freenode](https://freenode.net/).
    libgroovefingerprinter-dev.
 2. `npm install --save groove`
 
+### Ubuntu 18.04
+
+libgroove is hard to get in Ubuntu 18.04. Follow these instructions:
+
+* https://github.com/andrewrk/libgroove/blob/4.3.x/README.md#ubuntu-1804
+* https://github.com/andrewrk/libgroove/blob/4.3.x/README.md#building-with-a-locally-built-libav
+
+To build this module from source, edit `binding.gyp` and make these modifications:
+
+* Add an entry to the beginning of `"libraries"` that is `"-L{YOUR-HOME-DIRECTORY-HERE}/local/lib",`,
+  for example `"-L/home/josh/local/lib",`.
+* Add a new option: `"cflags": ["-L{YOUR-HOME-DIRECTORY-HERE}/local/include"],`,
+  for example `"cflags": ["-L/home/josh/local/include"],`.
+
+Then running `npm install` should work.
+
 ### Versions
 
  * node-groove >=2.4.0 depends on libgroove >=4.3.0
