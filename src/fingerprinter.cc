@@ -279,10 +279,10 @@ NAN_METHOD(GNFingerprinter::Encode) {
 
     Local<Array> int_list = Local<Array>::Cast(info[0]);
     int len = int_list->Length();
-    int32_t *raw_fingerprint = new int32_t[len];
+    uint32_t *raw_fingerprint = new uint32_t[len];
     for (int i = 0; i < len; i += 1) {
         double val = int_list->Get(Nan::New<Number>(i))->NumberValue();
-        raw_fingerprint[i] = (int32_t)val;
+        raw_fingerprint[i] = (uint32_t)val;
     }
     char *fingerprint;
     groove_fingerprinter_encode(raw_fingerprint, len, &fingerprint);
@@ -304,7 +304,7 @@ NAN_METHOD(GNFingerprinter::Decode) {
     String::Utf8Value utf8fingerprint(info[0]->ToString());
     char *fingerprint = *utf8fingerprint;
 
-    int32_t *raw_fingerprint;
+    uint32_t *raw_fingerprint;
     int raw_fingerprint_len;
     groove_fingerprinter_decode(fingerprint, &raw_fingerprint, &raw_fingerprint_len);
     Local<Array> int_list = Nan::New<Array>();
